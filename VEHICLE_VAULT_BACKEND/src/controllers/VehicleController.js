@@ -1,12 +1,16 @@
 const mongoose = require("mongoose");
 const VehicleModel = require("../models/VehicleModel");
 
+// ADD VEHICLE (Updated for Multi-Image)
 const addVehicle = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     
+    // req.files comes from upload.array("images")
+    const imageUrls = req.files ? req.files.map((file) => file.path) : [];
+
     const savedVehicle = await VehicleModel.create({
-      seller_id: new mongoose.Types.ObjectId(userId), // Explicitly cast to ObjectId
+      seller_id: new mongoose.Types.ObjectId(userId),
       make: req.body.make,
       model: req.body.model,
       year: req.body.year,
@@ -17,8 +21,7 @@ const addVehicle = async (req, res) => {
       location: req.body.location,
       description: req.body.description,
       price: Number(req.body.price),
-      // req.file.path is the full Cloudinary URL provided by cloudinary-multer
-      images: req.file ? [req.file.path] : [], 
+      images: imageUrls, // Store the array of all uploaded images
     });
 
     res.status(201).json({
@@ -36,7 +39,8 @@ const addVehicle = async (req, res) => {
 const getAllVehicles = async (req, res) => {
   try {
     const vehicles = await VehicleModel.find()
-      .populate("seller_id", "firstName email phone")
+      // ✅ UPDATED: Added lastName and phone to populate
+      .populate("seller_id", "firstName lastName email phone")
       .populate("report_id");
 
     res.status(200).json({
@@ -54,8 +58,6 @@ const getAllVehicles = async (req, res) => {
 const getMyVehicles = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    
-    // Using new mongoose.Types.ObjectId(userId) ensures the query matches the Schema type
     const vehicles = await VehicleModel.find({ 
       seller_id: new mongoose.Types.ObjectId(userId) 
     }).populate("report_id");
@@ -75,7 +77,8 @@ const getMyVehicles = async (req, res) => {
 const getVehicleById = async (req, res) => {
   try {
     const vehicle = await VehicleModel.findById(req.params.id)
-      .populate("seller_id", "firstName email phone")
+      // ✅ UPDATED: Added lastName and phone to populate
+      .populate("seller_id", "firstName lastName email phone")
       .populate("report_id");
 
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
@@ -92,6 +95,7 @@ const getVehicleById = async (req, res) => {
   }
 };
 
+// UPDATE VEHICLE (Updated for Reordering & Multi-Image)
 const updateVehicle = async (req, res) => {
   try {
     const vehicle = await VehicleModel.findById(req.params.id);
@@ -99,13 +103,37 @@ const updateVehicle = async (req, res) => {
 
     if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
 
+    // Security Check
     if (vehicle.seller_id.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
+    // 1. Handle Existing Image Order (Reordering/Deleting)
+    let finalImagesArray = vehicle.images; 
+    
+    if (req.body.existingImages) {
+      try {
+        finalImagesArray = JSON.parse(req.body.existingImages);
+      } catch (e) {
+        finalImagesArray = Array.isArray(req.body.existingImages) 
+          ? req.body.existingImages 
+          : [req.body.existingImages];
+      }
+    }
+
+    // 2. Add New Uploaded Images
+    if (req.files && req.files.length > 0) {
+      const newUrls = req.files.map(file => file.path);
+      finalImagesArray = [...finalImagesArray, ...newUrls];
+    }
+
+    // 3. Update the Database
     const updatedVehicle = await VehicleModel.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      {
+        ...req.body,
+        images: finalImagesArray 
+      },
       { new: true }
     ).populate("report_id");
 

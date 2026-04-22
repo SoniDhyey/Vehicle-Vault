@@ -15,6 +15,8 @@ import EditVehicle from "../pages/seller/EditVehicle";
 import BuyerDashboard from "../pages/buyer/BuyerDashboard";
 import SellerDashboard from "../pages/seller/SellerDashboard";
 import AddVehicle from "../pages/seller/AddVehicle";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 // Offer Pages
 import MyOffer from "../pages/offer/MyOffer"; 
@@ -46,6 +48,8 @@ const router = createBrowserRouter([
   { path: "/signup", element: <Signup /> },
   { path: "/about", element: <About /> },
   { path: "/help", element: <Help /> },
+  {path: "/forgot-password", element: <ForgotPassword />},
+  { path: "/reset-password/:token", element: <ResetPassword /> },
 
   // BUYER ROUTES
   {

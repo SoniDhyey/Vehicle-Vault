@@ -15,11 +15,14 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-routes.post("/addvehicle", validatetoken, upload.single("image"), vehicleController.addVehicle);
+// ✅ Use .array("images") for multiple images
+routes.post("/addvehicle", validatetoken, upload.array("images"), vehicleController.addVehicle);
 routes.get("/myvehicles", validatetoken, vehicleController.getMyVehicles);
 routes.get("/getvehicles", validatetoken, vehicleController.getAllVehicles);
 routes.get("/getvehicle/:id", vehicleController.getVehicleById);
-routes.put("/updatevehicle/:id", validatetoken, vehicleController.updateVehicle); 
+
+// ✅ FIX: Added upload.array("images") here so the controller receives the file data
+routes.put("/updatevehicle/:id", validatetoken, upload.array("images"), vehicleController.updateVehicle); 
 routes.delete("/deletevehicle/:id", validatetoken, vehicleController.deleteVehicle);
 
 module.exports = routes;

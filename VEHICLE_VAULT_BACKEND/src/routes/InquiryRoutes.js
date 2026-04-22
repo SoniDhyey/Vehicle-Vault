@@ -1,18 +1,18 @@
 const express = require("express");
 const routes = express.Router();
 const inquiryController = require("../controllers/InquiryController");
+const validatetoken = require("../middleware/AuthMiddleware"); // ✅ Added middleware
 
 // Matches: POST http://localhost:3000/inquiry/sendinquiry
 routes.post("/sendinquiry", inquiryController.sendInquiry);
 
-// Matches: GET http://localhost:3000/inquiry/getinquiries
-// FIX: Changed from getMyInquiries to getAllInquiries to match your controller
-routes.get("/getinquiries", inquiryController.getAllInquiries);
+// ✅ UPDATED: Added validatetoken so we know WHICH seller is asking for inquiries
+routes.get("/getinquiries", validatetoken, inquiryController.getAllInquiries);
 
 // Matches: PUT http://localhost:3000/inquiry/updateinquiry/:id
-routes.put("/updateinquiry/:id", inquiryController.updateInquiry);
+routes.put("/updateinquiry/:id", validatetoken, inquiryController.updateInquiry);
 
 // Matches: DELETE http://localhost:3000/inquiry/deleteinquiry/:id
-routes.delete("/deleteinquiry/:id", inquiryController.deleteInquiry);
+routes.delete("/deleteinquiry/:id", validatetoken, inquiryController.deleteInquiry);
 
 module.exports = routes;

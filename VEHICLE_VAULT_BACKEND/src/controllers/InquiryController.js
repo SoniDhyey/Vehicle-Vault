@@ -1,4 +1,5 @@
 const InquiryModel = require("../models/InquiryModel");
+const VehicleModel = require("../models/VehicleModel");
 
 const sendInquiry = async (req, res) => {
   try {
@@ -15,11 +16,30 @@ const sendInquiry = async (req, res) => {
   }
 };
 
+// ✅ UPDATED: Now handles both Buyer and Seller views
 const getAllInquiries = async (req, res) => {
   try {
-    const inquiries = await InquiryModel.find()
-      .populate("vehicle_id", "make model price images") // ✅ FIXED: Ensure these match VehicleSchema
-      .sort({ inquiry_date: -1 });
+    const userId = req.user._id;
+    const userRole = req.user.role; // Assuming you have role in your token/req.user
+
+    let inquiries;
+
+    if (userRole === "seller") {
+      // 1. Logic for Sellers: Find inquiries for their vehicles
+      const sellerVehicles = await VehicleModel.find({ seller_id: userId }).select("_id");
+      const vehicleIds = sellerVehicles.map(v => v._id);
+
+      inquiries = await InquiryModel.find({ vehicle_id: { $in: vehicleIds } })
+        .populate("vehicle_id", "make model price images")
+        .populate("buyer_id", "firstName lastName email")
+        .sort({ inquiry_date: -1 });
+    } else {
+      // 2. Logic for Buyers: Find inquiries they personally sent
+      inquiries = await InquiryModel.find({ buyer_id: userId })
+        .populate("vehicle_id", "make model price images")
+        .populate("buyer_id", "firstName lastName email")
+        .sort({ inquiry_date: -1 });
+    }
 
     res.status(200).json({
       message: "Inquiries fetched",
@@ -28,7 +48,7 @@ const getAllInquiries = async (req, res) => {
   } catch (err) {
     res.status(500).json({
       message: "Error while fetching inquiries",
-      err: err
+      err: err.message
     });
   }
 };

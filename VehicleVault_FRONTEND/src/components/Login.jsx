@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useGoogleLogin } from "@react-oauth/google";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,114 +15,147 @@ export default function Login() {
     formState: { errors },
   } = useForm();
 
+  const handleAuthSuccess = (res) => {
+    localStorage.setItem("token", res.data.token);
+    const role = res.data.role?.toLowerCase() || res.data.data?.role?.toLowerCase();
+
+    if (res.data.data) {
+      const userData = { ...res.data.data, role: role };
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
+
+    if (role === "admin") navigate("/admin/dashboard");
+    else if (role === "seller") navigate("/seller/dashboard");
+    else navigate("/user/dashboard");
+
+    setTimeout(() => window.location.reload(), 100);
+  };
+
   const submitHandler = async (formData) => {
     try {
       const res = await axios.post("/user/login", formData);
-
       if (res.status === 200) {
         toast.success("Login successful");
-
-        // ✅ Store token
-        localStorage.setItem("token", res.data.token);
-
-        // ✅ Normalize role from API response
-        const role = res.data.role?.toLowerCase() || res.data.data?.role?.toLowerCase();
-
-        // ✅ Save user data with confirmed role
-        if (res.data.data) {
-          const userData = {
-            ...res.data.data,
-            role: role,
-          };
-          localStorage.setItem("user", JSON.stringify(userData));
-        }
-
-        // ✅ Navigate based on role
-        if (role === "admin") {
-          navigate("/admin/dashboard");
-        } else if (role === "seller") {
-          navigate("/seller/dashboard");
-        } else {
-          navigate("/user/dashboard");
-        }
-
-        // Force refresh ensures that stale states in the App are cleared
-        window.location.reload();
+        handleAuthSuccess(res);
       }
     } catch (err) {
-      console.error("Login Error:", err.response?.data);
-      toast.error(
-        err.response?.data?.message || "Login failed. Please check credentials."
-      );
+      toast.error(err.response?.data?.message || "Login failed.");
     }
   };
 
-  return (
-    <div className="min-h-screen flex bg-gray-900 font-sans">
-      
-      {/* LEFT IMAGE */}
-      <div className="hidden md:flex w-1/2 h-screen relative">
-        <img
-          src="https://images.unsplash.com/photo-1506521781263-d8422e82f27a"
-          alt="parking"
-          className="object-cover w-full h-full"
-        />
-        <div className="absolute inset-0 bg-black/60"></div>
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const userInfo = await axios.get(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+        );
 
-        <div className="absolute bottom-10 left-10 text-white z-10">
-          <h1 className="text-4xl font-bold">🚗 Vehicle Vault</h1>
-          <p className="text-gray-300 mt-2">
-            Secure Vehicle Management System
+        // Only sending email - role is detected on backend
+        const res = await axios.post("/user/google-login", {
+          email: userInfo.data.email,
+        });
+
+        if (res.status === 200) {
+          toast.success("Google Login Successful");
+          handleAuthSuccess(res);
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Google Auth Failed");
+      }
+    },
+  });
+
+  return (
+    <div className="min-h-screen flex bg-[#FBFCFE] font-sans select-none">
+      <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?q=80&w=2070&auto=format&fit=crop"
+          alt="Luxury Car"
+          className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-[10s]"
+        />
+        <div className="absolute inset-0 bg-blue-600/10"></div>
+        <div className="absolute bottom-16 left-16 text-white z-10">
+          <h1 className="text-5xl font-black tracking-tighter">Vehicle Vault</h1>
+          <p className="text-blue-100 mt-3 text-lg font-medium opacity-90">
+            The standard for automotive trust and transparency.
           </p>
         </div>
       </div>
 
-      {/* FORM */}
-      <div className="flex items-center justify-center w-full md:w-1/2 px-6 bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="flex items-center justify-center w-full md:w-1/2 px-10 bg-white">
         <div className="w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 text-white">
-            
-            <h2 className="text-3xl font-bold text-center mb-2">
-              Welcome Back 👋
-            </h2>
+          <h2 className="text-4xl font-black text-gray-900 tracking-tight mb-8 pt-4">
+            Welcome Back
+          </h2>
 
-            <p className="text-gray-300 text-center mb-6 text-sm">
-              Login to access your vault
-            </p>
+          <button
+            type="button"
+            onClick={() => handleGoogleLogin()}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 p-3.5 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6 cursor-pointer"
+          >
+            <img 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="Google" className="w-5 h-5"
+            />
+            Continue with Google
+          </button>
 
-            <form onSubmit={handleSubmit(submitHandler)} className="space-y-5">
-              
+          <div className="relative flex items-center mb-6">
+            <div className="flex-grow border-t border-gray-100"></div>
+            <span className="mx-4 text-gray-400 text-xs font-black uppercase tracking-widest">or</span>
+            <div className="flex-grow border-t border-gray-100"></div>
+          </div>
+
+          <form onSubmit={handleSubmit(submitHandler)} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">Email Address</label>
               <input
                 type="email"
-                placeholder="Email"
-                className="w-full p-3 bg-white/10 rounded-lg border border-white/20 focus:outline-none focus:border-blue-500"
+                placeholder="name@company.com"
+                className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
                 {...register("email", { required: "Email is required" })}
               />
-              {errors.email && <p className="text-red-400 text-xs">{errors.email.message}</p>}
+            </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 ml-1">Password</label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
-                  placeholder="Password"
-                  className="w-full p-3 bg-white/10 rounded-lg border border-white/20 focus:outline-none focus:border-blue-500"
+                  placeholder="••••••••"
+                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
                   {...register("password", { required: "Password is required" })}
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-white"
+                  className="absolute right-4 top-4 text-gray-400 hover:text-blue-600"
                 >
                   {showPass ? "🙈" : "👁️"}
                 </button>
               </div>
-              {errors.password && <p className="text-red-400 text-xs">{errors.password.message}</p>}
+            </div>
 
-              <button className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg font-bold transition-colors">
-                Login
+            <div className="flex justify-end pt-1">
+              <button 
+                type="button" 
+                onClick={() => navigate("/forgot-password")}
+                className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+              >
+                Forgot Password?
               </button>
-            </form>
+            </div>
 
-          </div>
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg transition-all transform hover:scale-[1.02] shadow-xl cursor-pointer">
+              Login 
+            </button>
+          </form>
+
+          <p className="text-center mt-12 text-gray-400 font-medium text-sm">
+            Don't have an account?{" "}
+            <button onClick={() => navigate("/signup")} className="text-blue-600 font-black hover:underline cursor-pointer">Create Account</button>
+          </p>
         </div>
       </div>
     </div>

@@ -9,8 +9,15 @@ const MyInquiries = () => {
     const fetchMyInquiries = async () => {
       try {
         const user = JSON.parse(localStorage.getItem("user"));
-        const res = await axios.get("http://localhost:3000/inquiry/getinquiries");
+        const token = localStorage.getItem("token"); // Get token for backend auth
+
+        const res = await axios.get("http://localhost:3000/inquiry/getinquiries", {
+          headers: {
+            Authorization: `Bearer ${token}` // ✅ Added token so backend knows who you are
+          }
+        });
         
+        // Filter locally as a backup safety measure
         const myData = res.data.data.filter((item) => 
             item.buyer_id?._id === user._id || item.buyer_id === user._id
         );
@@ -47,7 +54,6 @@ const MyInquiries = () => {
                     )}
                     <span className="text-[10px] uppercase font-bold text-slate-400">Vehicle:</span>
                     <h3 className="text-xl font-bold text-slate-900 uppercase">
-                      {/* ✅ FIXED: Use .make and .model */}
                       {iq.vehicle_id?.make || "Unknown"} {iq.vehicle_id?.model || ""}
                     </h3>
                     <p className="text-blue-600 font-bold">₹{iq.vehicle_id?.price?.toLocaleString()}</p>
@@ -68,10 +74,11 @@ const MyInquiries = () => {
                         <span className="text-blue-600 block text-[10px] font-black mb-1">Your Question:</span>
                         <p className="text-slate-800 font-medium">{iq.message}</p>
                       </div>
-                      {iq.reply && (
+                      {/* ✅ Check for both iq.reply OR iq.response depending on your model field name */}
+                      {(iq.reply || iq.response) && (
                         <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                           <span className="text-blue-600 block text-[10px] font-black mb-1">Seller Response:</span>
-                          <p className="text-slate-700 font-medium">{iq.reply}</p>
+                          <p className="text-slate-700 font-medium">{iq.reply || iq.response}</p>
                         </div>
                       )}
                     </div>

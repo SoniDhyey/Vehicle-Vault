@@ -1,3 +1,25 @@
+/* --- GLOBAL UI FIX: Remove text cursor from non-input elements --- */
+:root {
+  /* This ensures the arrow pointer is the default for the whole app */
+  cursor: default;
+  /* Prevents the blue highlight/I-beam when clicking titles or text */
+  user-select: none; 
+  -webkit-user-select: none;
+}
+
+/* Allow users to still select and type in inputs/forms */
+input, textarea, [contenteditable="true"] {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Ensure interactive elements still show the hand pointer */
+a, button, .clickable {
+  cursor: pointer;
+}
+
+/* --- YOUR EXISTING STYLES --- */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -11,9 +33,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }

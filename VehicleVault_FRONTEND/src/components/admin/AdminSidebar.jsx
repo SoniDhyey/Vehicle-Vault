@@ -12,7 +12,7 @@ export const AdminSidebar = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screean">
       {/* SIDEBAR */}
       <div
         className={`bg-gray-900 text-white p-5 shadow-lg transition-all duration-300 

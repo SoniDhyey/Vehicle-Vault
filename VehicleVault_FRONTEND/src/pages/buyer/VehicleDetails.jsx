@@ -19,12 +19,13 @@ import SendOffer from "../offer/SendOffer";
 
 const VehicleDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Added for routing
+  const navigate = useNavigate();
   const [vehicle, setVehicle] = useState(null);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showContact, setShowContact] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const [activeImage, setActiveImage] = useState("");
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -34,7 +35,13 @@ const VehicleDetails = () => {
           axios.get(`http://localhost:3000/inspection/getreport/${id}`),
         ]);
 
-        if (vRes.status === "fulfilled") setVehicle(vRes.value.data.data);
+        if (vRes.status === "fulfilled") {
+          const data = vRes.value.data.data;
+          setVehicle(data);
+          if (data.images && data.images.length > 0) {
+            setActiveImage(data.images[0]);
+          }
+        }
         if (rRes.status === "fulfilled") setReport(rRes.value.data.data);
       } catch (err) {
         console.error("Data sync failure", err);
@@ -63,7 +70,7 @@ const VehicleDetails = () => {
       <div className="bg-white border-b border-slate-200 py-10 px-6 mb-10 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-4">
           <div>
-            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tight">
+            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tight select none cursor-default">
               {vehicle.make} <span className="text-blue-600">{vehicle.model}</span>
             </h1>
             <div className="mt-4 flex gap-3">
@@ -83,9 +90,34 @@ const VehicleDetails = () => {
       {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7 space-y-8">
-          <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border-[12px] border-white">
-            <img src={vehicle.images?.[0] || "https://via.placeholder.com/800x500"} className="w-full h-[450px] object-cover" alt={vehicle.model} />
+          <div className="space-y-6">
+            <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border-[12px] border-white">
+              <img 
+                src={activeImage || "https://via.placeholder.com/800x500"} 
+                className="w-full h-[450px] object-cover transition-all duration-500" 
+                alt={vehicle.model} 
+              />
+            </div>
+
+            {vehicle.images && vehicle.images.length > 1 && (
+              <div className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-hide">
+                {vehicle.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImage(img)}
+                    className={`relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-4 transition-all ${
+                      activeImage === img 
+                        ? "border-blue-600 scale-105 shadow-lg" 
+                        : "border-white shadow-sm hover:border-slate-200"
+                    }`}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt={`View ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
           <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Certified Specifications</h3>
             <div className="grid grid-cols-3 gap-6">
@@ -112,7 +144,7 @@ const VehicleDetails = () => {
             ) : <p className="text-center text-slate-400 font-bold py-10">Pending Inspection</p>}
           </div>
 
-          {/* ASSET OWNERSHIP - Updated with Inquiry Button */}
+          {/* ASSET OWNERSHIP */}
           <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white shadow-2xl">
             <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-8">Asset Ownership</h3>
             <div className="flex items-center gap-6 mb-10">
@@ -120,7 +152,10 @@ const VehicleDetails = () => {
                 {vehicle.seller_id?.firstName?.charAt(0) || "S"}
               </div>
               <div>
-                <p className="font-black text-xl">{vehicle.seller_id?.firstName} {vehicle.seller_id?.lastName}</p>
+                {/* ✅ UPDATED: Now shows full name */}
+                <p className="font-black text-xl">
+                  {vehicle.seller_id?.firstName} {vehicle.seller_id?.lastName}
+                </p>
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Verified Member</p>
               </div>
             </div>
@@ -129,10 +164,17 @@ const VehicleDetails = () => {
               {showContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <FaPhone className="text-blue-400" size={14} /><p className="font-bold text-sm tracking-wider">{vehicle.seller_id?.phoneNumber || "N/A"}</p>
+                    <FaPhone className="text-blue-400" size={14} />
+                    {/* ✅ UPDATED: Now shows actual phone number from backend */}
+                    <p className="font-bold text-sm tracking-wider">
+                      {vehicle.seller_id?.phone || "N/A"}
+                    </p>
                   </div>
                   <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <FaEnvelope className="text-blue-400" size={14} /><p className="font-bold text-sm break-all">{vehicle.seller_id?.email || "N/A"}</p>
+                    <FaEnvelope className="text-blue-400" size={14} />
+                    <p className="font-bold text-sm break-all">
+                      {vehicle.seller_id?.email || "N/A"}
+                    </p>
                   </div>
                   <button onClick={() => setShowContact(false)} className="w-full text-[10px] text-slate-500 uppercase font-black tracking-widest mt-2 hover:text-slate-300">Hide Details</button>
                 </div>
@@ -140,7 +182,6 @@ const VehicleDetails = () => {
                 <button onClick={() => setShowContact(true)} className="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all">Connect Seller</button>
               )}
 
-              {/* BOOK TEST DRIVE BUTTON */}
               <button 
                 onClick={() => navigate(`/user/book-testdrive/${id}`)}
                 className="w-full bg-white/5 hover:bg-white/10 border border-white/20 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2"
@@ -148,7 +189,6 @@ const VehicleDetails = () => {
                 <FaCarSide className="text-blue-400" /> Book Test Drive
               </button>
 
-              {/* ASK A QUESTION / INQUIRY BUTTON */}
               <button 
                 onClick={() => navigate(`/user/send-inquiry/${id}`)}
                 className="w-full bg-white/5 hover:bg-white/10 border border-white/20 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2"
@@ -163,6 +203,7 @@ const VehicleDetails = () => {
   );
 };
 
+// ... SpecItem and ReportLine components remain exactly the same
 const SpecItem = ({ icon, label, value }) => (
   <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border border-slate-100">
     <div className="text-blue-600 mb-3 text-xl">{icon}</div>
