@@ -5,11 +5,11 @@ import { FaTrashAlt } from 'react-icons/fa';
 
 const ReportList = () => {
   const [reports, setReports] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchReports = async () => {
     try {
-      // Matches your backend GET /getreports route
-      const res = await axios.get("http://localhost:3000/inspection/getreports");
+      const res = await axios.get(`${API_URL}/inspection/getreports`);
       setReports(res.data.data);
     } catch (err) {
       toast.error("Error fetching reports");
@@ -23,10 +23,9 @@ const ReportList = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this report?")) {
       try {
-        // Matches your backend DELETE /deletereport/:id route
-        await axios.delete(`http://localhost:3000/inspection/deletereport/${id}`);
+        await axios.delete(`${API_URL}/inspection/deletereport/${id}`);
         toast.success("Report deleted");
-        fetchReports(); // Refresh list
+        fetchReports();
       } catch (err) {
         toast.error("Delete failed");
       }

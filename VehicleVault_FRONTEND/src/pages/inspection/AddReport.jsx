@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { FaClipboardCheck, FaCarCrash, FaComments, FaTools } from "react-icons/fa";
+import { FaCarCrash, FaComments, FaTools } from "react-icons/fa";
 
 const AddReport = () => {
   const { vehicleId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [reportId, setReportId] = useState(null);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const [report, setReport] = useState({
     vehicle_id: vehicleId,
@@ -23,8 +24,7 @@ const AddReport = () => {
     const fetchExistingReport = async () => {
       try {
         const token = localStorage.getItem("token");
-        // Matches the updated backend prefix /inspection
-        const res = await axios.get(`http://localhost:3000/inspection/getreport/${vehicleId}`, {
+        const res = await axios.get(`${API_URL}/inspection/getreport/${vehicleId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -40,22 +40,22 @@ const AddReport = () => {
       }
     };
     fetchExistingReport();
-  }, [vehicleId]);
+  }, [vehicleId, API_URL]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
     try {
       if (reportId) {
-        await axios.put(`http://localhost:3000/inspection/updatereport/${reportId}`, report, {
+        await axios.put(`${API_URL}/inspection/updatereport/${reportId}`, report, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success("Audit updated successfully!");
       } else {
-        await axios.post("http://localhost:3000/inspection/addreport", report, {
+        await axios.post(`${API_URL}/inspection/addreport`, report, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        toast.success("Audit saved! Vehicle is now AVAILABLE.");
+        toast.success("Audit saved!");
       }
       navigate("/seller/dashboard");
     } catch (err) {
@@ -64,7 +64,7 @@ const AddReport = () => {
   };
 
   const styles = {
-    container: { minHeight: "100vh", backgroundColor: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px", fontFamily: "sans-serif" },
+    container: { minHeight: "100vh", backgroundColor: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" },
     card: { backgroundColor: "#ffffff", width: "100%", maxWidth: "800px", borderRadius: "24px", boxShadow: "0 10px 25px rgba(0,0,0,0.05)", padding: "40px", border: "1px solid #f1f5f9" },
     grid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "30px" },
     inputGroup: { display: "flex", flexDirection: "column", gap: "8px", padding: "15px", backgroundColor: "#f8fafc", borderRadius: "12px" },
@@ -79,7 +79,6 @@ const AddReport = () => {
     <div style={styles.container}>
       <form style={styles.card} onSubmit={handleSubmit}>
         <h1 style={{fontSize: "24px", fontWeight: "800", marginBottom: "20px"}}>{reportId ? "Update Technical Audit" : "New Technical Audit"}</h1>
-        
         <div style={styles.grid}>
           <div style={{...styles.inputGroup, gridColumn: "1 / -1"}}>
             <label style={styles.label}><FaTools /> Engine Performance</label>
@@ -87,22 +86,21 @@ const AddReport = () => {
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Tyre Condition</label>
-            <input style={styles.input} placeholder="e.g. 80% life remaining" value={report.tyre_condition} onChange={(e) => setReport({...report, tyre_condition: e.target.value})} required />
+            <input style={styles.input} placeholder="e.g. 80% life" value={report.tyre_condition} onChange={(e) => setReport({...report, tyre_condition: e.target.value})} required />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>Body & Paint</label>
-            <input style={styles.input} placeholder="e.g. Original paint, minor scratches" value={report.body_condition} onChange={(e) => setReport({...report, body_condition: e.target.value})} required />
+            <input style={styles.input} placeholder="e.g. Original paint" value={report.body_condition} onChange={(e) => setReport({...report, body_condition: e.target.value})} required />
           </div>
           <div style={{...styles.inputGroup, gridColumn: "1 / -1"}}>
             <label style={styles.label}><FaCarCrash /> Accident History</label>
-            <input style={styles.input} placeholder="e.g. Clean history, no accidents" value={report.accident_history} onChange={(e) => setReport({...report, accident_history: e.target.value})} required />
+            <input style={styles.input} placeholder="e.g. Clean history" value={report.accident_history} onChange={(e) => setReport({...report, accident_history: e.target.value})} required />
           </div>
           <div style={{...styles.inputGroup, gridColumn: "1 / -1"}}>
             <label style={styles.label}><FaComments /> Final Remarks</label>
-            <textarea style={{...styles.input, minHeight: "80px"}} placeholder="Overall vehicle summary..." value={report.remarks} onChange={(e) => setReport({...report, remarks: e.target.value})} />
+            <textarea style={{...styles.input, minHeight: "80px"}} placeholder="Summary..." value={report.remarks} onChange={(e) => setReport({...report, remarks: e.target.value})} />
           </div>
         </div>
-        
         <button type="submit" style={styles.saveBtn}>
           {reportId ? "Update Audit Report" : "Save Audit Report"}
         </button>
