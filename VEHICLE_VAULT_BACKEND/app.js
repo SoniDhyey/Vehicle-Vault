@@ -26,6 +26,7 @@ const testDriveRoutes = require('./src/routes/TestDriveRoutes');
 const helpRoutes = require("./src/routes/HelpRoutes");
 const inquiryRoutes = require("./src/routes/InquiryRoutes"); 
 
+// These paths match your frontend calls now
 app.use("/user", userRoutes);
 app.use("/vehicle", vehicleRoutes);
 app.use('/offer', offerRoutes); 
@@ -34,7 +35,6 @@ app.use("/inquiry", inquiryRoutes);
 app.use("/help", helpRoutes);
 app.use('/inspection', inspectionReportRoutes); 
 
-// 2. UPDATED PORT & LISTEN: Added '0.0.0.0' for better compatibility with Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);

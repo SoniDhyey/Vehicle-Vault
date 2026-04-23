@@ -9,6 +9,9 @@ export default function Login() {
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
 
+  // Define your Render URL here for easy maintenance
+  const BACKEND_URL = "https://vehicle-vault-backend.onrender.com";
+
   const {
     register,
     handleSubmit,
@@ -33,7 +36,8 @@ export default function Login() {
 
   const submitHandler = async (formData) => {
     try {
-      const res = await axios.post("/user/login", formData);
+      // UPDATED: Added full Render URL
+      const res = await axios.post(`${BACKEND_URL}/user/login`, formData);
       if (res.status === 200) {
         toast.success("Login successful");
         handleAuthSuccess(res);
@@ -51,8 +55,8 @@ export default function Login() {
           { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
         );
 
-        // Only sending email - role is detected on backend
-        const res = await axios.post("/user/google-login", {
+        // UPDATED: Added full Render URL
+        const res = await axios.post(`${BACKEND_URL}/user/google-login`, {
           email: userInfo.data.email,
         });
 
