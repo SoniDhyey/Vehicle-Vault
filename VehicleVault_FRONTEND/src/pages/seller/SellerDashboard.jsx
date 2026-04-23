@@ -9,11 +9,14 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Environment variable for API URL
+  const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
   const fetchVehicles = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3000/vehicle/myvehicles", {
+      const res = await axios.get(`${BACKEND_URL}/vehicle/myvehicles`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVehicles(res.data.data || []);
@@ -28,7 +31,7 @@ const SellerDashboard = () => {
     if (window.confirm("Are you sure you want to delete this vehicle?")) {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.delete(`http://localhost:3000/vehicle/deletevehicle/${id}`, {
+        const res = await axios.delete(`${BACKEND_URL}/vehicle/deletevehicle/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -45,7 +48,7 @@ const SellerDashboard = () => {
 
   useEffect(() => {
     fetchVehicles();
-  }, []);
+  }, [BACKEND_URL]);
 
   const getImageUrl = (v) => {
     if (!v) return null;
@@ -60,11 +63,9 @@ const SellerDashboard = () => {
         
         <div className="flex justify-between items-end mb-12 border-b border-slate-100 pb-8">
           <div>
-            {/* Added select-none and cursor-default below */}
             <h1 className="text-4xl font-black text-slate-900 tracking-tight select-none cursor-default">
               Seller Dashboard
             </h1>
-            {/* Added select-none and cursor-default below */}
             <p className="text-slate-500 font-medium mt-2 select-none cursor-default">
               Manage your inventory and technical audits
             </p>
@@ -99,7 +100,6 @@ const SellerDashboard = () => {
                   </div>
 
                   <div className="flex-1">
-                    {/* Added select-none to vehicle titles as well */}
                     <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter select-none cursor-default">
                       {v.make} {v.model}
                     </h3>

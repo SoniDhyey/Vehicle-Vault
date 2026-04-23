@@ -7,12 +7,15 @@ const BuyerDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
   const navigate = useNavigate();
 
+  // Environment variable for API URL
+  const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
   useEffect(() => {
     const fetchAllVehicles = async () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "http://localhost:3000/vehicle/getvehicles",
+          `${BACKEND_URL}/vehicle/getvehicles`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -25,12 +28,10 @@ const BuyerDashboard = () => {
       }
     };
     fetchAllVehicles();
-  }, []);
+  }, [BACKEND_URL]);
 
   return (
-    // Changed pt-28 to pt-10 to decrease the top space significantly
     <div className="min-h-screen bg-[#FBFCFE] font-sans select-none pt-10 pb-20 px-6 lg:px-16">
-      {/* HEADER SECTION */}
       <div className="max-w-4xl mb-12">
         <span className="text-blue-600 font-black text-xs uppercase tracking-[4px] mb-2 block">
           Premium Inventory
@@ -43,7 +44,6 @@ const BuyerDashboard = () => {
         </p>
       </div>
 
-      {/* VEHICLE GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {vehicles.length > 0 ? (
           vehicles.map((v) => (
@@ -51,7 +51,6 @@ const BuyerDashboard = () => {
               key={v._id}
               className="group bg-white rounded-[32px] border border-gray-100 shadow-xl shadow-blue-100/30 overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-blue-200/50 transition-all duration-500 hover:-translate-y-2"
             >
-              {/* IMAGE CONTAINER */}
               <div className="relative h-56 w-full overflow-hidden">
                 <img
                   src={
@@ -61,7 +60,6 @@ const BuyerDashboard = () => {
                   alt={v.model}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-                {/* Updated price badge with US formatting for consistent 3-digit comma spacing */}
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg shadow-black/5 border border-white/20">
                   <span className="text-blue-600 font-black text-sm">
                     ₹{v.price.toLocaleString("en-IN")}
@@ -69,7 +67,6 @@ const BuyerDashboard = () => {
                 </div>
               </div>
 
-              {/* CONTENT SECTION */}
               <div className="p-6 flex flex-col flex-grow">
                 <div className="mb-4">
                   <h3 className="text-xl font-black text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
@@ -108,7 +105,6 @@ const BuyerDashboard = () => {
         )}
       </div>
 
-      {/* FOOTER */}
       <footer className="mt-20 text-center">
         <p className="text-gray-300 font-bold text-[10px] uppercase tracking-[3px]">
           Vehicle Vault © 2026 • Verified Automotive Market

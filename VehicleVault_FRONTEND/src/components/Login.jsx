@@ -10,7 +10,7 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
 
   // Define your Render URL here for easy maintenance
-  const BACKEND_URL = "https://vehicle-vault-backend.onrender.com";
+   const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const {
     register,

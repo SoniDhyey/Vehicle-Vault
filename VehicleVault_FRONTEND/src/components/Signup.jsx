@@ -10,6 +10,9 @@ export default function Signup() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
+  // Environment variable for API URL
+  const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
   const {
     register,
     handleSubmit,
@@ -32,7 +35,7 @@ export default function Signup() {
 
   const submitHandler = async (formData) => {
     try {
-      const res = await axios.post("/user/register", formData);
+      const res = await axios.post(`${BACKEND_URL}/user/register`, formData);
       if (res.status === 201 || res.status === 200) {
         toast.success("Account created successfully!");
         navigate("/login");
@@ -44,7 +47,6 @@ export default function Signup() {
 
   const handleGoogleSignup = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      // Validate both role AND phone before proceeding
       const isRoleValid = await trigger("role");
       const isPhoneValid = await trigger("phone");
 
@@ -61,13 +63,12 @@ export default function Signup() {
 
         const { email, given_name, family_name } = userInfo.data;
 
-        // Call the specific google-signup endpoint
-        const res = await axios.post("/user/google-signup", {
+        const res = await axios.post(`${BACKEND_URL}/user/google-signup`, {
           email,
           firstName: given_name,
           lastName: family_name,
           role: selectedRole,
-          phone: phoneValue, // Sending the compulsory phone number
+          phone: phoneValue,
         });
 
         if (res.status === 201 || res.status === 200) {
