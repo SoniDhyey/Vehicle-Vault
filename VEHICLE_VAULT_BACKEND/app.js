@@ -4,10 +4,15 @@ const app = express();
 const cors = require('cors');
 const path = require("path");
 
-app.use(express.json());
-app.use(cors());
+// 1. UPDATED CORS: This allows your Vercel frontend to talk to this backend
+app.use(cors({
+  origin: "https://vehicle-vault-alpha.vercel.app",
+  credentials: true
+}));
 
-// STATIC FOLDER - Ensure this folder actually exists in your root directory
+app.use(express.json());
+
+// STATIC FOLDER
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const DBConnection = require('./src/utils/DBConnection');
@@ -26,12 +31,11 @@ app.use("/vehicle", vehicleRoutes);
 app.use('/offer', offerRoutes); 
 app.use('/testdrive', testDriveRoutes);
 app.use("/inquiry", inquiryRoutes);
-app.use("/help", helpRoutes)
-
-// ✅ FIX: ADDED THIS LINE - Without this, reports will never work
+app.use("/help", helpRoutes);
 app.use('/inspection', inspectionReportRoutes); 
 
+// 2. UPDATED PORT & LISTEN: Added '0.0.0.0' for better compatibility with Render
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
