@@ -5,13 +5,13 @@ import { toast } from "react-toastify";
 const Help = () => {
   const [form, setForm] = useState({
     email: "",
-    message: ""
+    message: "",
   });
 
   const handleChange = (e) => {
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -24,7 +24,7 @@ const Help = () => {
 
       setForm({
         email: "",
-        message: ""
+        message: "",
       });
     } catch (err) {
       toast.error("Error sending query");
@@ -38,7 +38,7 @@ const Help = () => {
         onSubmit={handleSubmit}
         className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md space-y-5"
       >
-        <h2 className="text-2xl font-bold text-amber-400 text-center">
+        <h2 className="text-2xl font-bold text-amber-400 text-center select-none">
           Help & Support 🛠
         </h2>
 
@@ -48,7 +48,7 @@ const Help = () => {
           placeholder="Your Email"
           value={form.email}
           onChange={handleChange}
-          className="w-full p-3 rounded bg-black/40 border border-gray-600 focus:outline-none focus:border-amber-500"
+          className="w-full p-3 rounded bg-black/40 border border-gray-600 focus:border-amber-500 focus:outline-none focus:ring-0 focus:ring-offset-0 outline-none"
           required
         />
 
@@ -57,7 +57,7 @@ const Help = () => {
           placeholder="Describe your issue or question..."
           value={form.message}
           onChange={handleChange}
-          className="w-full p-3 rounded bg-black/40 border border-gray-600 h-32 focus:outline-none focus:border-amber-500"
+          className="w-full p-3 rounded bg-black/40 border border-gray-600 h-32 focus:border-amber-500 focus:outline-none focus:ring-0 focus:ring-offset-0 outline-none resize-none"
           required
         />
 

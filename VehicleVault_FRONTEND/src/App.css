@@ -1,20 +1,29 @@
-/* --- GLOBAL UI FIX: Remove text cursor from non-input elements --- */
-:root {
-  /* This ensures the arrow pointer is the default for the whole app */
+/* --- GLOBAL UI FIX: Refined --- */
+
+html, body {
+  /* Use default arrow everywhere */
   cursor: default;
-  /* Prevents the blue highlight/I-beam when clicking titles or text */
-  user-select: none; 
+  /* Remove the default blue highlight from the background */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Apply user-select only to specific display elements rather than the root */
+h1, h2, h3, h4, h5, h6, p, span, div:not(.allow-select) {
+  user-select: none;
   -webkit-user-select: none;
 }
 
-/* Allow users to still select and type in inputs/forms */
+/* Allow text selection and proper cursor behavior in inputs */
 input, textarea, [contenteditable="true"] {
-  cursor: text;
-  user-select: text;
-  -webkit-user-select: text;
+  cursor: text !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  /* This kills that ghost line in your screenshot */
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-/* Ensure interactive elements still show the hand pointer */
+/* Ensure interactive elements show the hand pointer */
 a, button, .clickable {
   cursor: pointer;
 }
@@ -43,12 +52,8 @@ a, button, .clickable {
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

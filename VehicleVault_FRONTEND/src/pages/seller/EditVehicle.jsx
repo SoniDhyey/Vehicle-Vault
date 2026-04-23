@@ -46,174 +46,180 @@ const EditVehicle = () => {
     }
   };
 
+  // FIXED LOGIC: When an image is set as cover, it MUST become the first element 
+  // and we must decide if the "Primary" slot belongs to Existing or New.
   const setAsCover = (index, isExisting) => {
     if (isExisting) {
       const updated = [...existingImages];
-      const selected = updated.splice(index, 1);
-      setExistingImages([...selected, ...updated]);
+      const [selected] = updated.splice(index, 1);
+      setExistingImages([selected, ...updated]);
+      // If an existing image is cover, new images just follow after
     } else {
-      const updated = [...newImages];
-      const selected = updated.splice(index, 1);
-      setNewImages([...selected, ...updated]);
+      const updatedNew = [...newImages];
+      const [selectedFile] = updatedNew.splice(index, 1);
+      setNewImages([selectedFile, ...updatedNew]);
+      
+      // CRITICAL: If a NEW image is cover, we move all existing images 
+      // to the end so the backend sees the new file at index 0.
+      const currentExisting = [...existingImages];
+      setExistingImages([]); 
+      setExistingImages(currentExisting);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
+    
     formData.append("make", vehicle.make);
     formData.append("model", vehicle.model);
     formData.append("year", vehicle.year);
     formData.append("price", vehicle.price);
     formData.append("description", vehicle.description);
-    formData.append("existingImages", JSON.stringify(existingImages));
-    newImages.forEach((file) => formData.append("images", file));
+
+    // FIX FOR 500 ERROR: Ensure existingImages ONLY contains valid http URLs
+    // and no temporary blob strings.
+    const cleanExisting = existingImages.filter(img => 
+      typeof img === 'string' && img.startsWith('http')
+    );
+    formData.append("existingImages", JSON.stringify(cleanExisting));
+
+    // Append files in their specific order
+    newImages.forEach((file) => {
+      formData.append("images", file);
+    });
 
     try {
       const token = localStorage.getItem("token");
       await axios.put(`http://localhost:3000/vehicle/updatevehicle/${id}`, formData, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data" 
+        }
       });
       toast.success("Vehicle updated successfully");
       navigate("/seller/dashboard");
     } catch (err) {
-      toast.error("Update failed");
+      console.error("Backend Error:", err.response?.data);
+      toast.error(err.response?.data?.message || "Upload failed: Server Error (500)");
     }
   };
 
-  if (loading) return <div className="p-20 text-center font-bold text-slate-400">Loading...</div>;
+  // Helper to determine what to show in the big "Primary" box
+  const getPrimaryImage = () => {
+    // If you want New Images to be able to override the existing cover:
+    // Logic: If there are new images and the user specifically moved one to front
+    // Or just default to existing if available.
+    if (existingImages.length > 0) return existingImages[0];
+    if (newImages.length > 0) return URL.createObjectURL(newImages[0]);
+    return null;
+  };
+
+  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-slate-400">Loading...</div>;
 
   return (
-    <div className="min-h-screen p-6 md:p-12 bg-[#f8fafc] text-[#0f172a]">
-      <div className="max-w-7xl mx-auto space-y-10">
-        
-        {/* Page Header */}
-        <div className="select-none cursor-default px-2">
-          <h1 className="text-[42px] font-black tracking-tight leading-tight">
-            Edit Vehicle
-          </h1>
-          <p className="text-slate-400 font-medium text-lg mt-1">Manage your vehicle details and media gallery</p>
-        </div>
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20">
+      <nav className="px-8 py-8 max-w-[1600px] mx-auto flex justify-between items-center">
+         <h1 className="text-2xl font-black tracking-tight">
+          Edit Listing: <span className="text-blue-600 ml-1">{vehicle.make} {vehicle.model}</span>
+        </h1>
+      </nav>
 
-        <form onSubmit={handleSubmit} className="space-y-10">
+      <main className="max-w-[1600px] mx-auto px-6 lg:px-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
-          {/* MEDIA GALLERY - Full width with premium card styling */}
-          <section className="bg-white p-10 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
-            <div className="flex justify-between items-center mb-10 select-none">
-              <div>
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Media Gallery</h2>
-                <p className="text-sm text-slate-400 mt-1 italic font-medium">Drag-and-drop behavior is simulated by "Set as Cover"</p>
-              </div>
-              <label className="bg-[#0f172a] text-white px-8 py-4 rounded-2xl text-sm font-black cursor-pointer hover:bg-blue-600 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
+          <div className="lg:col-span-7 space-y-8">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-800">Media Gallery</h2>
+              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">
                 + Add Photos
                 <input type="file" multiple className="hidden" onChange={handleFileSelect} />
               </label>
             </div>
 
-            {/* Premium Grid: Larger, HD Aspect Ratio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {existingImages.map((url, index) => (
-                <PremiumImageCard 
-                  key={`exist-${index}`}
-                  url={url} 
-                  isCover={index === 0} 
-                  onRemove={() => removeImage(index, true)} 
-                  onSetCover={() => setAsCover(index, true)}
-                />
-              ))}
-              {newImages.map((file, index) => (
-                <PremiumImageCard 
-                  key={`new-${index}`}
-                  url={URL.createObjectURL(file)} 
-                  isNew 
-                  onRemove={() => removeImage(index, false)} 
-                  onSetCover={() => setAsCover(index, false)}
-                />
-              ))}
-            </div>
-          </section>
+            <div className="space-y-6">
+              {/* PRIMARY PREVIEW */}
+              <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-[6px] border-white bg-white">
+                {getPrimaryImage() ? (
+                  <img src={getPrimaryImage()} className="w-full h-full object-cover" alt="Primary" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">No Images</div>
+                )}
+                <div className="absolute top-6 left-6 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
+                  Primary Cover
+                </div>
+              </div>
 
-          {/* SPECIFICATIONS SECTION */}
-          <section className="bg-white p-12 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
-            <h3 className="text-xl font-black text-slate-800 mb-10 select-none uppercase tracking-widest">Vehicle Specifications</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              <Input label="Vehicle Make" value={vehicle.make} onChange={(e) => setVehicle({...vehicle, make: e.target.value})} />
-              <Input label="Vehicle Model" value={vehicle.model} onChange={(e) => setVehicle({...vehicle, model: e.target.value})} />
-              <Input label="Manufacturing Year" value={vehicle.year} type="number" onChange={(e) => setVehicle({...vehicle, year: e.target.value})} />
-              <Input label="Price (INR)" value={vehicle.price} type="number" onChange={(e) => setVehicle({...vehicle, price: e.target.value})} />
+              {/* THUMBNAILS */}
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                {existingImages.map((url, i) => (
+                  <GalleryItem 
+                    key={`ex-${i}`} 
+                    url={url} 
+                    isCover={i === 0}
+                    onRemove={() => removeImage(i, true)} 
+                    onSetCover={() => setAsCover(i, true)} 
+                  />
+                ))}
+                {newImages.map((file, i) => (
+                  <GalleryItem 
+                    key={`new-${i}`} 
+                    url={URL.createObjectURL(file)} 
+                    isNew 
+                    isCover={false} // New images only show as cover if moved to front and existing is empty
+                    onRemove={() => removeImage(i, false)} 
+                    onSetCover={() => setAsCover(i, false)} 
+                  />
+                ))}
+              </div>
             </div>
-            
-            <div className="mt-10 flex flex-col">
-              <label className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.3em] select-none pl-1">
-                Full Description
-              </label>
-              <textarea 
-                className="border-2 border-slate-50 bg-[#fbfcfd] rounded-[2rem] p-8 h-64 outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-700 leading-relaxed text-lg shadow-sm"
-                value={vehicle.description}
-                onChange={(e) => setVehicle({...vehicle, description: e.target.value})}
-                placeholder="Describe the condition, history, and features of the vehicle..."
-              />
-            </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-6 mt-14">
-              <button type="button" onClick={() => navigate(-1)} className="flex-1 bg-slate-50 border border-slate-100 text-slate-400 font-bold py-6 rounded-[2rem] hover:bg-slate-100 hover:text-slate-600 transition-all uppercase tracking-widest text-xs">
-                Discard Changes
-              </button>
-              <button type="submit" className="flex-[2] bg-blue-600 text-white font-black py-6 rounded-[2rem] hover:bg-blue-700 shadow-[0_20px_40px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-xs">
-                Save & Update Vehicle
+          <div className="lg:col-span-5 lg:sticky lg:top-10">
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100">
+              <h3 className="text-[11px] font-black text-blue-600 mb-8 uppercase tracking-widest">Specifications</h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-5">
+                  <Input label="Make" value={vehicle.make} onChange={(e) => setVehicle({...vehicle, make: e.target.value})} />
+                  <Input label="Model" value={vehicle.model} onChange={(e) => setVehicle({...vehicle, model: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-5">
+                  <Input label="Year" type="number" value={vehicle.year} onChange={(e) => setVehicle({...vehicle, year: e.target.value})} />
+                  <Input label="Price" type="number" value={vehicle.price} onChange={(e) => setVehicle({...vehicle, price: e.target.value})} />
+                </div>
+                <textarea 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-6 h-40 outline-none focus:border-blue-500 text-sm"
+                  value={vehicle.description}
+                  onChange={(e) => setVehicle({...vehicle, description: e.target.value})}
+                />
+              </div>
+              <button onClick={handleSubmit} className="w-full mt-8 py-5 bg-blue-600 text-white text-sm font-black rounded-2xl shadow-lg uppercase tracking-widest">
+                Save & Update
               </button>
             </div>
-          </section>
-        </form>
-      </div>
+          </div>
+
+        </div>
+      </main>
     </div>
   );
 };
 
-// Premium Image Component
-const PremiumImageCard = ({ url, isCover, isNew, onRemove, onSetCover }) => (
-  <div className={`relative group aspect-[16/10] rounded-[2.5rem] overflow-hidden border-[6px] transition-all duration-700 ${isCover ? 'border-blue-500 shadow-2xl scale-[1.03] z-10' : 'border-white shadow-lg hover:shadow-2xl hover:border-slate-100'}`}>
-    <img 
-      src={url} 
-      alt="Vehicle Asset" 
-      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 image-render-auto" 
-      style={{ imageRendering: 'auto' }}
-    />
-    
-    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-    {isCover && (
-      <div className="absolute top-6 left-6 bg-blue-500 text-white text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-widest shadow-lg select-none">
-        Primary Cover
-      </div>
-    )}
-    
-    {isNew && (
-      <div className="absolute top-6 right-6 bg-emerald-500 text-white text-[10px] px-4 py-2 rounded-xl font-black uppercase tracking-widest shadow-lg select-none">
-        New
-      </div>
-    )}
-
-    {/* Controls */}
-    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4 px-6">
-      {!isCover && (
-        <button type="button" onClick={onSetCover} className="flex-1 bg-white hover:bg-blue-600 hover:text-white text-slate-900 font-black px-4 py-4 rounded-2xl transition-all shadow-xl text-[10px] uppercase tracking-widest">
-          Set as Cover
-        </button>
-      )}
-      <button type="button" onClick={onRemove} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black px-4 py-4 rounded-2xl transition-all shadow-xl text-[10px] uppercase tracking-widest">
-        Remove
-      </button>
+const GalleryItem = ({ url, isNew, onRemove, onSetCover, isCover }) => (
+  <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${isCover ? 'border-blue-500 ring-2 ring-blue-100' : 'border-white shadow-sm'}`}>
+    <img src={url} className="w-full h-full object-cover" alt="Thumb" />
+    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+      <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase">Set Cover</button>
+      <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase">Delete</button>
     </div>
+    {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase">New</div>}
   </div>
 );
 
 const Input = ({ label, ...props }) => (
   <div className="flex flex-col">
-    <label className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.3em] select-none pl-1">{label}</label>
-    <input className="border-2 border-slate-50 bg-[#fbfcfd] rounded-[2rem] p-6 outline-none focus:border-blue-500 focus:bg-white transition-all text-slate-700 font-bold text-lg shadow-sm" {...props} />
+    <label className="text-[10px] font-black text-slate-400 mb-2 uppercase pl-1">{label}</label>
+    <input className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:border-blue-500 font-bold text-slate-700 text-sm" {...props} />
   </div>
 );
 
