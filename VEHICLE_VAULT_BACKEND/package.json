@@ -1,13 +1,14 @@
 {
   "name": "vehicle_vault_backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for Vehicle Vault Project",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Dhyey Soni",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
