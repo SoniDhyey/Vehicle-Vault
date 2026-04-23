@@ -5,8 +5,9 @@ const cors = require('cors');
 const path = require("path");
 
 // 1. UPDATED CORS: This allows your Vercel frontend to talk to this backend
+// UPDATED CORS: Allows both your live site and your local testing
 app.use(cors({
-  origin: "https://vehicle-vault-alpha.vercel.app",
+  origin: ["https://vehicle-vault-alpha.vercel.app", "http://localhost:5173"],
   credentials: true
 }));
 
