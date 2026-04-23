@@ -10,8 +10,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 
 function App() {
   const [count, setCount] = useState(0)
-  axios.defaults.baseURL = "http://localhost:3000"
-
+  axios.defaults.baseURL = "https://vehicle-vault-backend.onrender.com"
+  axios.defaults.withCredentials = true
   return (
     // 2. Wrap everything in the Provider
     // PASTE YOUR CLIENT ID FROM GOOGLE CLOUD CONSOLE HERE
