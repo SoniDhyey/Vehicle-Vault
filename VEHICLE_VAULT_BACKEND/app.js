@@ -12,8 +12,13 @@ app.use((req, res, next) => {
 });
 
 // 2. UPDATED CORS: Explicitly allows your Vercel URL and local development
+// 2. UPDATED CORS: Add your specific IP address here
 app.use(cors({
-  origin: ["https://vehicle-vault-alpha.vercel.app", "http://localhost:5173"],
+  origin: [
+    "https://vehicle-vault-alpha.vercel.app", 
+    "http://localhost:5173",
+    "http://192.168.4.103:5173" // <--- Add your IP here so your phone can talk to the backend
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
