@@ -13,22 +13,22 @@ const EditVehicle = () => {
     model: '', 
     year: '', 
     price: '', 
-    description: '',
-    fuelType: '',
-    transmission: '' 
+    description: '' 
   });
   
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [coverSource, setCoverSource] = useState('existing');
 
-  // ✅ Use environment variable for the backend URL
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/vehicle/getvehicle/${id}`);
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_URL}/vehicle/getvehicle/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setVehicle(res.data.data);
         setExistingImages(res.data.data.images || []);
         setLoading(false);
@@ -77,25 +77,28 @@ const EditVehicle = () => {
     e.preventDefault();
     const formData = new FormData();
     
-    // ✅ Add vehicle details (excluding the raw images array from state)
-    Object.keys(vehicle).forEach(key => {
-      if (key !== 'images') formData.append(key, vehicle[key]);
-    });
+    // Append standard fields
+    formData.append("make", vehicle.make);
+    formData.append("model", vehicle.model);
+    formData.append("year", vehicle.year);
+    formData.append("price", vehicle.price);
+    formData.append("description", vehicle.description);
 
-    const cleanExisting = existingImages.filter(img => typeof img === 'string' && img.startsWith('http'));
+    // Filter to ensure only valid URL strings are sent
+    const cleanExisting = existingImages.filter(img => typeof img === 'string');
     
-    // ✅ Logic: Order images so the Backend always sees the Cover at Index 0
-    if (coverSource === 'new') {
-      newImages.forEach((file) => formData.append("images", file));
-      formData.append("existingImages", JSON.stringify(cleanExisting));
-    } else {
-      formData.append("existingImages", JSON.stringify(cleanExisting));
-      newImages.forEach((file) => formData.append("images", file));
-    }
+    // ✅ CRITICAL FIX FOR 500 ERROR:
+    // We send existing images as separate entries so the backend handles the array correctly
+    cleanExisting.forEach(img => formData.append("existingImages", img));
+
+    // ✅ Append new files
+    newImages.forEach((file) => formData.append("images", file));
+
+    // ✅ Add a flag so the backend knows which array contains the cover (Index 0)
+    formData.append("isNewImageCover", coverSource === 'new');
 
     try {
       const token = localStorage.getItem("token");
-      // ✅ Added token to fix 401 and ordered payload to fix 500
       await axios.put(`${API_URL}/vehicle/updatevehicle/${id}`, formData, {
         headers: { 
           "Content-Type": "multipart/form-data",
@@ -118,7 +121,7 @@ const EditVehicle = () => {
     return null;
   };
 
-  if (loading) return <div className="p-20 text-center font-black uppercase tracking-widest text-slate-400">Loading Vault...</div>;
+  if (loading) return <div className="p-20 text-center font-black uppercase tracking-widest text-slate-400 italic">Accessing the Vault...</div>;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20">
@@ -129,7 +132,7 @@ const EditVehicle = () => {
       </nav>
 
       <main className="max-w-[1600px] mx-auto px-6 lg:px-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
           <div className="lg:col-span-7 space-y-8">
             <div className="flex justify-between items-center">
@@ -145,7 +148,7 @@ const EditVehicle = () => {
                 {getPrimaryImage() ? (
                   <img src={getPrimaryImage()} className="w-full h-full object-cover" alt="Primary" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">No Images</div>
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">Empty Vault</div>
                 )}
                 <div className="absolute top-6 left-6 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
                   Primary Cover
@@ -190,7 +193,7 @@ const EditVehicle = () => {
                 </div>
                 <textarea 
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-6 h-40 outline-none focus:border-blue-500 text-sm font-medium"
-                  placeholder="Describe your vehicle..."
+                  placeholder="Vehicle description..."
                   value={vehicle.description}
                   onChange={(e) => setVehicle({...vehicle, description: e.target.value})}
                 />
@@ -214,7 +217,7 @@ const GalleryItem = ({ url, isNew, onRemove, onSetCover, isCover }) => (
       <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter">Set Cover</button>
       <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter">Remove</button>
     </div>
-    {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase shadow-md">New</div>}
+    {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase">New</div>}
   </div>
 );
 
