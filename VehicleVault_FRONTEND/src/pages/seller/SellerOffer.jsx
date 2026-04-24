@@ -10,20 +10,10 @@ const SellerOffer = () => {
   const fetchOffers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please login to access offers.");
-        return;
-      }
-
-      const res = await axios.get("http://localhost:3000/offer/getoffers", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Validating response structure
+      // ✅ Uses global axios config
+      const res = await axios.get("/offer/getoffers");
       setOffers(res.data.data || []);
     } catch (err) {
-      console.error("Offer Fetch Error:", err);
       toast.error("Failed to load incoming offers");
     } finally {
       setLoading(false);
@@ -36,102 +26,61 @@ const SellerOffer = () => {
 
   const handleAction = async (id, status) => {
     try {
-      const token = localStorage.getItem("token");
-      // Matching backend PUT route
-      await axios.put(`http://localhost:3000/offer/updateoffer/${id}`, 
-        { status }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(`Offer marked as ${status}`);
-      fetchOffers(); // Refresh list to show updated status
+      await axios.put(`/offer/updateoffer/${id}`, { status });
+      toast.success(`Offer ${status} successfully`);
+      fetchOffers(); 
     } catch (err) {
-      toast.error("Failed to update offer status");
+      toast.error("Failed to update status");
     }
   };
 
-  if (loading) return <div className="p-20 text-center text-slate-500">Syncing with the Vault...</div>;
+  if (loading) return <div className="p-20 text-center text-slate-400 font-black uppercase tracking-widest">Scanning Offers...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-black mb-10 text-slate-900 leading-tight">Incoming Offers</h1>
+        <h1 className="text-3xl font-black mb-10 text-slate-900 italic">Incoming <span className="text-blue-600">Offers</span></h1>
 
         {offers.length === 0 ? (
-          <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center shadow-sm">
-            <FaHistory className="mx-auto text-slate-300 text-4xl mb-4" />
-            <p className="text-slate-400 font-bold">No active offers for your vehicles.</p>
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center shadow-sm">
+            <FaHistory className="mx-auto text-slate-200 text-5xl mb-4" />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No active offers found.</p>
           </div>
         ) : (
           <div className="grid gap-6">
             {offers.map((offer) => (
-              <div 
-                key={offer._id} 
-                // Modern card with a colored accent border for visibility
-                className="bg-white border-l-4 border-l-blue-500 p-6 rounded-2xl shadow-md border-y border-r border-slate-100 flex flex-col md:flex-row md:items-center gap-6 relative"
-              >
-                
-                {/* --- NEW: DATE BADGE --- */}
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  <FaCalendarAlt className="text-blue-500" />
-                  {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                  }) : "N/A"}
+              <div key={offer._id} className="bg-white border-l-8 border-l-blue-600 p-8 rounded-3xl shadow-xl border border-slate-100 flex flex-col md:flex-row md:items-center gap-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 px-4 py-2 bg-slate-100 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                  ID: {offer._id.slice(-6)}
                 </div>
 
-                {/* Car Details Block */}
-                <div className="flex-1 md:border-r md:border-slate-100 md:pr-6">
-                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
-                    Vehicle
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-1">
-                    {offer.vehicle_id?.make || "Unknown"} {offer.vehicle_id?.model || "Model"}
+                <div className="flex-1">
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">Vehicle Unit</span>
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">
+                    {offer.vehicle_id?.make} {offer.vehicle_id?.model}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                    {offer.vehicle_id?.year || "Year"} • {offer.vehicle_id?.fuelType || "Fuel"}
-                  </p>
+                  <p className="text-xs font-bold text-slate-400 uppercase mt-1">Ref: {offer.vehicle_id?.year} • {offer.vehicle_id?.fuelType}</p>
                 </div>
 
-                {/* Offer Amount Block */}
-                <div className="md:border-r md:border-slate-100 md:px-6 md:text-center flex-1">
-                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Buyer's Offer</p>
-                  <p className="text-3xl font-black text-emerald-600 tracking-tighter">
-                    ₹{offer.offered_price?.toLocaleString('en-IN')}
-                  </p>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">
-                     STATUS: <span className="text-blue-600 uppercase">{offer.status}</span>
-                   </p>
+                <div className="md:px-8 md:text-center border-l border-slate-100">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bid Price</p>
+                  <p className="text-4xl font-black text-emerald-600 tracking-tighter">₹{offer.offered_price?.toLocaleString('en-IN')}</p>
                 </div>
                 
-                {/* Buyer Info and Actions Block */}
-                <div className="flex-1 space-y-3">
-                  <div className="text-sm space-y-1">
-                    <p className="text-slate-600 font-medium">Buyer: <span className="font-bold text-slate-900">{offer.buyer_id?.firstName} {offer.buyer_id?.lastName}</span></p>
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-xs text-slate-500">📧 {offer.buyer_id?.email || "N/A"}</p>
-                      <p className="text-xs text-slate-500">📞 {offer.buyer_id?.phone || "N/A"}</p>
-                    </div>
+                <div className="flex-1 space-y-4">
+                  <div className="bg-slate-50 p-4 rounded-2xl">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter mb-1">Buyer Details</p>
+                    <p className="font-black text-slate-800 text-sm">{offer.buyer_id?.firstName} {offer.buyer_id?.lastName}</p>
+                    <p className="text-xs text-slate-500 font-medium">{offer.buyer_id?.email}</p>
                   </div>
 
                   {offer.status === "Pending" && (
-                    <div className="flex gap-2.5 pt-1">
-                      <button 
-                        onClick={() => handleAction(offer._id, "Accepted")}
-                        className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition flex items-center gap-2"
-                      >
-                        <FaCheck /> Accept
-                      </button>
-                      <button 
-                        onClick={() => handleAction(offer._id, "Rejected")}
-                        className="bg-white border border-red-200 text-red-500 px-5 py-2.5 rounded-xl font-bold hover:bg-red-50 transition flex items-center gap-2"
-                      >
-                        <FaTimes /> Reject
-                      </button>
+                    <div className="flex gap-3">
+                      <button onClick={() => handleAction(offer._id, "Accepted")} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all active:scale-95">Accept</button>
+                      <button onClick={() => handleAction(offer._id, "Rejected")} className="flex-1 bg-white border-2 border-rose-100 text-rose-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95">Reject</button>
                     </div>
                   )}
                 </div>
-
               </div>
             ))}
           </div>
