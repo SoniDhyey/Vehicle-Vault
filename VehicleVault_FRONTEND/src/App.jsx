@@ -3,21 +3,20 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import AppRouter from './router/AppRouter'
 import { ToastContainer, Zoom } from 'react-toastify'
-//import './App.css'
 import axios from 'axios'
-// 1. Import the Google Provider
 import { GoogleOAuthProvider } from '@react-oauth/google'
 
 function App() {
-  const [count, setCount] = useState(0)
-  axios.defaults.baseURL = "https://vehicle-vault-backend.onrender.com"
-  axios.defaults.withCredentials = true
+  // Use the environment variable for the base URL, fallback to Render if not set
+  const API_URL = import.meta.env.VITE_API_URL || "https://vehicle-vault-backend.onrender.com";
+  
+  axios.defaults.baseURL = API_URL;
+  axios.defaults.withCredentials = true;
+
   return (
-    // 2. Wrap everything in the Provider
-    // PASTE YOUR CLIENT ID FROM GOOGLE CLOUD CONSOLE HERE
     <GoogleOAuthProvider clientId="306528138144-i4uft8dqokuqgavd8egpafi3on1p259g.apps.googleusercontent.com">
       <>
-        <AppRouter></AppRouter>
+        <AppRouter />
         <ToastContainer
           position="top-center"
           autoClose={5000}
@@ -36,4 +35,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

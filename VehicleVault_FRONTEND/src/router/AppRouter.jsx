@@ -48,7 +48,7 @@ const router = createBrowserRouter([
   { path: "/signup", element: <Signup /> },
   { path: "/about", element: <About /> },
   { path: "/help", element: <Help /> },
-  {path: "/forgot-password", element: <ForgotPassword />},
+  { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/reset-password/:token", element: <ResetPassword /> },
 
   // BUYER ROUTES
@@ -62,10 +62,13 @@ const router = createBrowserRouter([
       { path: "carlist", element: <CarList /> },
       { path: "cardetail", element: <CarDetail /> },
       { path: "my-offer", element: <MyOffer /> },
+      
+      // ✅ FIXED: These now match the useParams() call in your components
       { path: "book-testdrive/:vehicleId", element: <BookTestDrive /> },
+      { path: "send-inquiry/:vehicleId", element: <SendInquiry /> },
+      
       { path: "my-bookings", element: <MyBookings /> },
       { path: "my-inquiries", element: <MyInquiries /> },
-      { path: "send-inquiry/:vehicleId", element: <SendInquiry /> },
     ],
   },
 
