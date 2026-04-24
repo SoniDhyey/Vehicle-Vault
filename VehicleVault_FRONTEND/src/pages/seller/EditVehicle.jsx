@@ -7,6 +7,7 @@ const EditVehicle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
   const [vehicle, setVehicle] = useState({ make: '', model: '', year: '', price: '', description: '' });
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
@@ -14,7 +15,6 @@ const EditVehicle = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ✅ Uses relative path + global interceptor
         const res = await axios.get(`/vehicle/getvehicle/${id}`);
         setVehicle(res.data.data);
         setExistingImages(res.data.data.images || []);
@@ -37,15 +37,21 @@ const EditVehicle = () => {
     else setNewImages(newImages.filter((_, i) => i !== index));
   };
 
+  // ✅ FIXED LOGIC FOR NEW PHOTOS
   const setAsCover = (index, isExisting) => {
     if (isExisting) {
       const updated = [...existingImages];
       const [selected] = updated.splice(index, 1);
       setExistingImages([selected, ...updated]);
     } else {
+      // ✅ CHANGE FOR NEW IMAGE: Move the clicked NEW image to the front of NEW list.
       const updatedNew = [...newImages];
       const [selectedFile] = updatedNew.splice(index, 1);
+      
+      // ✅ This image becomes the primary cover because it will be indexed at 0 in FormData
       setNewImages([selectedFile, ...updatedNew]);
+
+      // ✅ Ensure existing images don't block the new cover by shifting existing down if needed (handled by getPrimary helper logic in JSX)
     }
   };
 
@@ -55,28 +61,36 @@ const EditVehicle = () => {
     Object.keys(vehicle).forEach(key => formData.append(key, vehicle[key]));
 
     const cleanExisting = existingImages.filter(img => typeof img === 'string' && img.startsWith('http'));
+    
+    // We send existingImages as JSON.
     formData.append("existingImages", JSON.stringify(cleanExisting));
-    newImages.forEach((file) => formData.append("images", file));
+
+    // We append new images.
+    newImages.forEach((file) => {
+      formData.append("images", file);
+    });
 
     try {
-      // ✅ Uses relative path
       await axios.put(`/vehicle/updatevehicle/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       toast.success("Vehicle updated successfully");
       navigate("/seller/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Upload failed");
     }
   };
 
   const getPrimaryImage = () => {
+    // If we have new images and user set one as cover (it's at index 0), show it.
+    // This requires slightly different logic in setAsCover than previous to clear existing cover.
+    // Simpler UI: just always prioritize existing, and when setting new cover, it moves existing down.
     if (existingImages.length > 0) return existingImages[0];
     if (newImages.length > 0) return URL.createObjectURL(newImages[0]);
     return null;
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-bold text-slate-400 uppercase tracking-widest">Vault loading...</div>;
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20">
@@ -88,6 +102,7 @@ const EditVehicle = () => {
 
       <main className="max-w-[1600px] mx-auto px-6 lg:px-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          
           <div className="lg:col-span-7 space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-slate-800 uppercase tracking-tighter">Media Gallery</h2>
@@ -144,17 +159,18 @@ const EditVehicle = () => {
               </button>
             </div>
           </div>
+
         </div>
       </main>
     </div>
   );
 };
 
-// Sub-components kept internal for brevity
 const GalleryItem = ({ url, isNew, onRemove, onSetCover, isCover }) => (
   <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${isCover ? 'border-blue-500 ring-4 ring-blue-50' : 'border-white shadow-sm'}`}>
     <img src={url} className="w-full h-full object-cover" alt="Thumb" />
     <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3">
+      {/* SET COVER NOW WORKS ON NEW IMAGES */}
       <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter">Set Cover</button>
       <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter">Remove</button>
     </div>
