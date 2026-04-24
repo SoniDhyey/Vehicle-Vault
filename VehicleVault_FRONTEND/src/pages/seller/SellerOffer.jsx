@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { FaCheck, FaTimes, FaHistory, FaCalendarAlt, FaFileContract } from "react-icons/fa";
+import { FaCheck, FaTimes, FaHistory, FaCalendarAlt } from "react-icons/fa";
 
 const SellerOffer = () => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
-  // ✅ Use dynamic API URL from environment variables
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const fetchOffers = async () => {
@@ -14,7 +13,6 @@ const SellerOffer = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       
-      // ✅ Ensure correct endpoint and Authorization header
       const res = await axios.get(`${API_URL}/offer/getoffers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,7 +38,7 @@ const SellerOffer = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(`Offer marked as ${status}`);
-      fetchOffers(); // Refresh the list
+      fetchOffers(); 
     } catch (err) {
       toast.error("Failed to update offer status");
     }
@@ -80,7 +78,6 @@ const SellerOffer = () => {
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bid Price</p>
                    <p className="text-4xl font-black text-emerald-600 tracking-tighter">₹{offer.offered_price?.toLocaleString('en-IN')}</p>
                    
-                   {/* ✅ Correctly display the current state */}
                    {offer.status !== "Pending" && (
                     <div className={`inline-flex items-center gap-1.5 mt-2 px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${offer.status === "Accepted" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"}`}>
                        {offer.status === "Accepted" ? <FaCheck /> : <FaTimes />} {offer.status}
@@ -95,15 +92,11 @@ const SellerOffer = () => {
                     <p className="text-xs text-slate-500 font-medium">{offer.buyer_id?.email}</p>
                   </div>
 
-                  {offer.status === "Pending" ? (
+                  {offer.status === "Pending" && (
                     <div className="flex gap-3">
                       <button onClick={() => handleAction(offer._id, "Accepted")} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all active:scale-95">Accept</button>
                       <button onClick={() => handleAction(offer._id, "Rejected")} className="flex-1 bg-white border-2 border-rose-100 text-rose-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95">Reject</button>
                     </div>
-                  ) : offer.status === "Accepted" && (
-                    <button className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 transition active:scale-95">
-                        <FaFileContract /> View Final Contract
-                    </button>
                   )}
                 </div>
               </div>

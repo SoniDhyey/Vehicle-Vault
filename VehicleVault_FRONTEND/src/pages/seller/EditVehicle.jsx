@@ -11,6 +11,8 @@ const EditVehicle = () => {
   const [vehicle, setVehicle] = useState({ make: '', model: '', year: '', price: '', description: '' });
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
+  // ✅ Track if the cover is currently from 'existing' or 'new'
+  const [coverSource, setCoverSource] = useState('existing');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,26 +35,29 @@ const EditVehicle = () => {
   };
 
   const removeImage = (index, isExisting) => {
-    if (isExisting) setExistingImages(existingImages.filter((_, i) => i !== index));
-    else setNewImages(newImages.filter((_, i) => i !== index));
+    if (isExisting) {
+      setExistingImages(existingImages.filter((_, i) => i !== index));
+      if (index === 0) setCoverSource(newImages.length > 0 ? 'new' : 'existing');
+    } else {
+      setNewImages(newImages.filter((_, i) => i !== index));
+      if (index === 0 && coverSource === 'new') setCoverSource('existing');
+    }
   };
 
-  // ✅ FIXED LOGIC FOR NEW PHOTOS
+  // ✅ IMPROVED SET COVER LOGIC
   const setAsCover = (index, isExisting) => {
     if (isExisting) {
       const updated = [...existingImages];
       const [selected] = updated.splice(index, 1);
       setExistingImages([selected, ...updated]);
+      setCoverSource('existing'); // Focus back on existing
     } else {
-      // ✅ CHANGE FOR NEW IMAGE: Move the clicked NEW image to the front of NEW list.
       const updatedNew = [...newImages];
       const [selectedFile] = updatedNew.splice(index, 1);
-      
-      // ✅ This image becomes the primary cover because it will be indexed at 0 in FormData
       setNewImages([selectedFile, ...updatedNew]);
-
-      // ✅ Ensure existing images don't block the new cover by shifting existing down if needed (handled by getPrimary helper logic in JSX)
+      setCoverSource('new'); // Focus on the new image list
     }
+    toast.info("Cover image updated in preview");
   };
 
   const handleSubmit = async (e) => {
@@ -60,12 +65,15 @@ const EditVehicle = () => {
     const formData = new FormData();
     Object.keys(vehicle).forEach(key => formData.append(key, vehicle[key]));
 
+    // If a new image is the cover, it's already at index 0 of the "images" append
+    // If an existing image is the cover, it's at index 0 of cleanExisting
     const cleanExisting = existingImages.filter(img => typeof img === 'string' && img.startsWith('http'));
     
-    // We send existingImages as JSON.
+    // Logic: If coverSource is 'new', the backend should treat the first file in 'images' as primary
+    // We send an extra field so your backend knows which one to prioritize if needed
+    formData.append("coverSource", coverSource);
     formData.append("existingImages", JSON.stringify(cleanExisting));
 
-    // We append new images.
     newImages.forEach((file) => {
       formData.append("images", file);
     });
@@ -81,12 +89,17 @@ const EditVehicle = () => {
     }
   };
 
+  // ✅ UI PREVIEW FIX: correctly shows what is selected
   const getPrimaryImage = () => {
-    // If we have new images and user set one as cover (it's at index 0), show it.
-    // This requires slightly different logic in setAsCover than previous to clear existing cover.
-    // Simpler UI: just always prioritize existing, and when setting new cover, it moves existing down.
-    if (existingImages.length > 0) return existingImages[0];
-    if (newImages.length > 0) return URL.createObjectURL(newImages[0]);
+    if (coverSource === 'new' && newImages.length > 0) {
+      return URL.createObjectURL(newImages[0]);
+    }
+    if (existingImages.length > 0) {
+      return existingImages[0];
+    }
+    if (newImages.length > 0) {
+        return URL.createObjectURL(newImages[0]);
+    }
     return null;
   };
 
@@ -113,23 +126,38 @@ const EditVehicle = () => {
             </div>
 
             <div className="space-y-6">
+              {/* BIG PRIMARY PREVIEW */}
               <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-[6px] border-white bg-white">
                 {getPrimaryImage() ? (
-                  <img src={getPrimaryImage()} className="w-full h-full object-cover" alt="Primary" />
+                  <img src={getPrimaryImage()} className="w-full h-full object-cover transition-all duration-500" alt="Primary" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">No Images Available</div>
+                  <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold uppercase tracking-widest">No Images</div>
                 )}
                 <div className="absolute top-6 left-6 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
                   Primary Cover
                 </div>
               </div>
 
+              {/* THUMBNAILS */}
               <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                 {existingImages.map((url, i) => (
-                  <GalleryItem key={`ex-${i}`} url={url} isCover={i === 0} onRemove={() => removeImage(i, true)} onSetCover={() => setAsCover(i, true)} />
+                  <GalleryItem 
+                    key={`ex-${i}`} 
+                    url={url} 
+                    isCover={coverSource === 'existing' && i === 0} 
+                    onRemove={() => removeImage(i, true)} 
+                    onSetCover={() => setAsCover(i, true)} 
+                  />
                 ))}
                 {newImages.map((file, i) => (
-                  <GalleryItem key={`new-${i}`} url={URL.createObjectURL(file)} isNew isCover={false} onRemove={() => removeImage(i, false)} onSetCover={() => setAsCover(i, false)} />
+                  <GalleryItem 
+                    key={`new-${i}`} 
+                    url={URL.createObjectURL(file)} 
+                    isNew 
+                    isCover={coverSource === 'new' && i === 0} 
+                    onRemove={() => removeImage(i, false)} 
+                    onSetCover={() => setAsCover(i, false)} 
+                  />
                 ))}
               </div>
             </div>
@@ -159,7 +187,6 @@ const EditVehicle = () => {
               </button>
             </div>
           </div>
-
         </div>
       </main>
     </div>
@@ -167,14 +194,18 @@ const EditVehicle = () => {
 };
 
 const GalleryItem = ({ url, isNew, onRemove, onSetCover, isCover }) => (
-  <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${isCover ? 'border-blue-500 ring-4 ring-blue-50' : 'border-white shadow-sm'}`}>
+  <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 ${isCover ? 'border-blue-500 ring-4 ring-blue-100 scale-95' : 'border-white shadow-sm'}`}>
     <img src={url} className="w-full h-full object-cover" alt="Thumb" />
-    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3">
-      {/* SET COVER NOW WORKS ON NEW IMAGES */}
-      <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter">Set Cover</button>
-      <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter">Remove</button>
+    
+    {/* Overlay appears on hover */}
+    <div className={`absolute inset-0 bg-slate-900/60 transition-opacity flex flex-col items-center justify-center gap-2 p-3 ${isCover ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
+      <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter hover:bg-blue-50">Set Cover</button>
+      <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter hover:bg-red-600">Remove</button>
     </div>
-    {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase">New</div>}
+
+    {/* Indicator Tags */}
+    {isCover && <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl pointer-events-none"></div>}
+    {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase shadow-md">New</div>}
   </div>
 );
 
