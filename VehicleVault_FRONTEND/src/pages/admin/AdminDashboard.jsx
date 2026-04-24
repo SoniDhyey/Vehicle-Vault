@@ -10,6 +10,9 @@ const AdminDashboard = () => {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Use Environment Variable for Phone/Laptop compatibility
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const fetchData = async () => {
     try {
@@ -17,7 +20,6 @@ const AdminDashboard = () => {
       const storedUser = localStorage.getItem("user");
       const user = storedUser ? JSON.parse(storedUser) : null;
 
-      // ✅ SECURITY CHECK: Only allow admin to stay on this page
       if (!token || user?.role !== "admin") {
         toast.error("Unauthorized access!");
         navigate("/login");
@@ -27,8 +29,8 @@ const AdminDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
       const [vRes, uRes] = await Promise.all([
-        axios.get("http://localhost:3000/vehicle/getvehicles", config),
-        axios.get("http://localhost:3000/user", config)
+        axios.get(`${API_URL}/vehicle/getvehicles`, config),
+        axios.get(`${API_URL}/user`, config)
       ]);
 
       const vList = Array.isArray(vRes.data?.data) ? vRes.data.data : [];
@@ -44,7 +46,6 @@ const AdminDashboard = () => {
       });
     } catch (err) {
       toast.error("Failed to sync dashboard data");
-      // If token is invalid/expired
       if (err.response?.status === 401) navigate("/login");
     } finally {
       setLoading(false);
@@ -68,44 +69,17 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-8 bg-[#f1f5f9] min-h-screen space-y-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-      
-      {/* HEADER SECTION */}
       <div className="pb-2 border-b-2 border-slate-200 select-none cursor-default">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-          ADMIN PANEL
-        </h1>
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight">ADMIN PANEL</h1>
         <p className="text-slate-500 font-medium mt-1">Manage users and vehicle listings</p>
       </div>
 
-      {/* THREE COLUMN STATS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatCard 
-          Icon={FaUsers} 
-          title="Total Buyers" 
-          value={stats.buyers} 
-          gradient="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)" 
-          onClick={() => navigate("/admin/allusers?role=buyer")} 
-        />
-        
-        <StatCard 
-          Icon={FaUserTie} 
-          title="Total Sellers" 
-          value={stats.sellers} 
-          gradient="linear-gradient(135deg, #6366f1 0%, #4338ca 100%)" 
-          onClick={() => navigate("/admin/allusers?role=seller")} 
-        />
-        
-        <StatCard 
-          Icon={FaCar} 
-          title="Live Listings" 
-          value={stats.approved} 
-          gradient="linear-gradient(135deg, #10b981 0%, #047857 100%)" 
-          active={filter === 'available'} 
-          onClick={() => setFilter(filter === 'available' ? 'all' : 'available')} 
-        />
+        <StatCard Icon={FaUsers} title="Total Buyers" value={stats.buyers} gradient="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)" onClick={() => navigate("/admin/allusers?role=buyer")} />
+        <StatCard Icon={FaUserTie} title="Total Sellers" value={stats.sellers} gradient="linear-gradient(135deg, #6366f1 0%, #4338ca 100%)" onClick={() => navigate("/admin/allusers?role=seller")} />
+        <StatCard Icon={FaCar} title="Live Listings" value={stats.approved} gradient="linear-gradient(135deg, #10b981 0%, #047857 100%)" active={filter === 'available'} onClick={() => setFilter(filter === 'available' ? 'all' : 'available')} />
       </div>
 
-      {/* INVENTORY TABLE SECTION */}
       <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
         <div className="p-8 border-b border-slate-100 flex items-center gap-4 select-none cursor-default">
           <div className="p-3 bg-slate-100 rounded-2xl text-slate-600"><FaShieldAlt /></div>
@@ -142,28 +116,17 @@ const AdminDashboard = () => {
                   </td>
                   <td className="px-8 py-6 select-none cursor-default">
                     <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border-2 ${
-                      v.status === 'pending' 
-                      ? 'bg-amber-50 text-amber-600 border-amber-100' 
-                      : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      v.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                     }`}>
                       {v.status}
                     </span>
                   </td>
                   <td className="px-8 py-6 text-right">
-                    <button 
-                      onClick={() => navigate(`/user/vehicle/${v._id}`)}
-                      className="bg-white border-2 border-slate-900 px-6 py-2.5 rounded-xl text-[11px] font-black text-slate-900 uppercase hover:bg-slate-900 hover:text-white transition-all duration-300 shadow-sm"
-                    >
-                      Manage
-                    </button>
+                    <button onClick={() => navigate(`/user/vehicle/${v._id}`)} className="bg-white border-2 border-slate-900 px-6 py-2.5 rounded-xl text-[11px] font-black text-slate-900 uppercase hover:bg-slate-900 hover:text-white transition-all duration-300 shadow-sm">Manage</button>
                   </td>
                 </tr>
               )) : (
-                <tr>
-                  <td colSpan="3" className="py-24 text-center select-none cursor-default">
-                    <p className="text-slate-300 font-black text-xl uppercase tracking-widest">No vehicles found</p>
-                  </td>
-                </tr>
+                <tr><td colSpan="3" className="py-24 text-center select-none cursor-default"><p className="text-slate-300 font-black text-xl uppercase tracking-widest">No vehicles found</p></td></tr>
               )}
             </tbody>
           </table>
@@ -174,27 +137,13 @@ const AdminDashboard = () => {
 };
 
 const StatCard = ({ Icon, title, value, gradient, onClick, active }) => (
-  <div 
-    onClick={onClick}
-    style={{
-        background: 'white',
-        boxShadow: active ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' : 'none'
-    }}
-    className={`p-1 rounded-[2rem] border-2 cursor-pointer transition-all duration-500 transform hover:-translate-y-2 select-none ${
-      active ? 'border-blue-500 scale-[1.02]' : 'border-transparent'
-    }`}
-  >
+  <div onClick={onClick} style={{ background: 'white', boxShadow: active ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' : 'none' }} className={`p-1 rounded-[2rem] border-2 cursor-pointer transition-all duration-500 transform hover:-translate-y-2 select-none ${active ? 'border-blue-500 scale-[1.02]' : 'border-transparent'}`}>
     <div className="bg-white p-7 rounded-[1.8rem] flex items-center justify-between overflow-hidden relative">
         <div className="z-10">
             <p className="text-slate-400 text-[11px] uppercase font-black tracking-[0.2em] mb-1">{title}</p>
             <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{value}</h3>
         </div>
-        <div 
-            style={{ background: gradient }} 
-            className="p-5 rounded-2xl text-white shadow-2xl z-10"
-        >
-            <Icon size={26} />
-        </div>
+        <div style={{ background: gradient }} className="p-5 rounded-2xl text-white shadow-2xl z-10"><Icon size={26} /></div>
     </div>
   </div>
 );

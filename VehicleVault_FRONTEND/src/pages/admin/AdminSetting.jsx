@@ -1,25 +1,21 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { FaUserShield, FaKey, FaSave } from "react-icons/fa"; // Removed FaDatabase
+import { FaUserShield, FaKey, FaSave } from "react-icons/fa";
 
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
   const [adminId, setAdminId] = useState(""); 
-  const [adminData, setAdminData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "", // Changed to match controller expectations
-  });
+  const [adminData, setAdminData] = useState({ firstName: "", lastName: "", email: "", password: "" });
+  
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     const fetchAdmin = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } };
-        const res = await axios.get("http://localhost:3000/user/profile", config);
-        
+        const res = await axios.get(`${API_URL}/user/profile`, config);
         const { _id, firstName, lastName, email } = res.data.data;
         setAdminId(_id); 
         setAdminData((prev) => ({ ...prev, firstName, lastName, email }));
@@ -28,7 +24,7 @@ const AdminSettings = () => {
       }
     };
     fetchAdmin();
-  }, []);
+  }, [API_URL]);
 
   const handleChange = (e) => {
     setAdminData({ ...adminData, [e.target.name]: e.target.value });
@@ -39,10 +35,7 @@ const AdminSettings = () => {
     setLoading(true);
     try {
       const config = { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } };
-      
-      // Targeting specific ID as required by the backend router.put("/:id")
-      await axios.put(`http://localhost:3000/user/${adminId}`, adminData, config);
-      
+      await axios.put(`${API_URL}/user/${adminId}`, adminData, config);
       toast.success("Profile updated successfully!");
     } catch (err) {
       toast.error(err.response?.data?.message || "Update failed");
@@ -63,13 +56,11 @@ const AdminSettings = () => {
         </header>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar Nav - System Logs button removed */}
           <aside className="w-full md:w-72 space-y-2">
             <TabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")} Icon={FaUserShield} label="Profile Details" />
             <TabButton active={activeTab === "security"} onClick={() => setActiveTab("security")} Icon={FaKey} label="Security & Password" />
           </aside>
 
-          {/* Content Wrapper */}
           <main className="flex-1 bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
             <div className="p-10">
               {activeTab === "profile" && (
@@ -80,7 +71,6 @@ const AdminSettings = () => {
                     <InputGroup label="Last Name" name="lastName" value={adminData.lastName} onChange={handleChange} placeholder="User" />
                   </div>
                   <InputGroup label="Login Email" name="email" type="email" value={adminData.email} disabled />
-                  
                   <button type="submit" disabled={loading} className="w-full md:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
                     <FaSave /> {loading ? "Processing..." : "Save Profile Changes"}
                   </button>
@@ -93,12 +83,9 @@ const AdminSettings = () => {
                   <div className="space-y-4">
                     <InputGroup label="New Password" type="password" name="password" onChange={handleChange} placeholder="Leave blank to keep current" />
                   </div>
-                  <button type="submit" disabled={loading} className="bg-rose-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-rose-700 transition-all">
-                    {loading ? "Updating..." : "Update Password"}
-                  </button>
+                  <button type="submit" disabled={loading} className="bg-rose-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-rose-700 transition-all">{loading ? "Updating..." : "Update Password"}</button>
                 </form>
               )}
-              {/* System Tab logic completely removed */}
             </div>
           </main>
         </div>
@@ -108,9 +95,7 @@ const AdminSettings = () => {
 };
 
 const TabButton = ({ active, onClick, Icon, label }) => (
-  <button onClick={onClick} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold transition-all ${active ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}>
-    <Icon size={18} /> {label}
-  </button>
+  <button onClick={onClick} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold transition-all ${active ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><Icon size={18} /> {label}</button>
 );
 
 const SectionHeading = ({ title, subtitle }) => (
