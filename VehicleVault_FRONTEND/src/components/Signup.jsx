@@ -3,22 +3,14 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { GoogleLogin } from "@react-oauth/google"; // CHANGED: Use standard component
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Signup() {
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
-  const [showConfirmPass, setShowConfirmPass] = useState(false);
-
   const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    trigger,
-  } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch, trigger } = useForm({
     defaultValues: { role: "", firstName: "", lastName: "", email: "", phone: "" },
   });
 
@@ -46,7 +38,6 @@ export default function Signup() {
     }
   };
 
-  // NEW Google Handler: Sends token to your backend to handle verification
   const handleGoogleResponse = async (credentialResponse) => {
     const isRoleValid = await trigger("role");
     const isPhoneValid = await trigger("phone");
@@ -58,11 +49,10 @@ export default function Signup() {
 
     try {
       const res = await axios.post(`${BACKEND_URL}/user/google-signup`, {
-        token: credentialResponse.credential, // Send the JWT token
+        token: credentialResponse.credential,
         role: selectedRole,
         phone: phoneValue,
       });
-
       if (res.status === 201 || res.status === 200) {
         toast.success("Google Signup Successful!");
         handleAuthSuccess(res);
@@ -75,31 +65,25 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex bg-[#FBFCFE] font-sans select-none">
       <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop"
-          alt="Clean Car"
-          className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-[12s]"
-        />
+        <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop" className="object-cover w-full h-full" alt="Car" />
         <div className="absolute bottom-16 left-16 text-white z-10">
-          <h1 className="text-5xl font-black tracking-tighter">Join the Vault</h1>
-          <p className="text-blue-50 mt-3 text-lg font-medium opacity-90 max-w-md">
-            The unified ecosystem for automotive transparency.
-          </p>
+          <h1 className="text-5xl font-black">Join the Vault</h1>
         </div>
       </div>
 
       <div className="flex items-center justify-center w-full md:w-1/2 px-10 bg-white overflow-y-auto py-12">
         <div className="w-full max-w-lg">
-          <h2 className="text-4xl font-black text-gray-900 mb-8">Create Account</h2>
+          <h2 className="text-4xl font-black text-center text-gray-900 mb-8">Create Account</h2>
 
-          {/* UPDATED: Google Login component avoids CORS preflight blocks */}
           <div className="w-full flex justify-center mb-6">
             <GoogleLogin
               onSuccess={handleGoogleResponse}
               onError={() => toast.error("Google Signup Failed")}
+              text="signup_with" // Sets button to "Sign up with Google"
+              shape="pill"
               theme="outline"
               size="large"
-              width="100%"
+              width="380"
             />
           </div>
 
@@ -109,85 +93,28 @@ export default function Signup() {
             <div className="flex-grow border-t border-gray-100"></div>
           </div>
 
-          <form onSubmit={handleSubmit(submitHandler)} className="space-y-5">
+          <form onSubmit={handleSubmit(submitHandler)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">First Name</label>
-                <input
-                  type="text"
-                  placeholder="John"
-                  className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                  {...register("firstName", { required: "Required" })}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Last Name</label>
-                <input
-                  type="text"
-                  placeholder="Doe"
-                  className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                  {...register("lastName", { required: "Required" })}
-                />
-              </div>
+              <input type="text" placeholder="First Name" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("firstName", { required: true })} />
+              <input type="text" placeholder="Last Name" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("lastName", { required: true })} />
             </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Account Type</label>
-              <select
-                className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                {...register("role", { required: "Please select a role" })}
-              >
-                <option value="" disabled>Select Role</option>
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Phone Number</label>
-              <input
-                type="tel"
-                placeholder="+91 00000 00000"
-                className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                {...register("phone", { required: "Phone is required" })}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Email</label>
-              <input
-                type="email"
-                placeholder="name@example.com"
-                className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                {...register("email", { required: "Email is required" })}
-              />
-            </div>
-
+            <select className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("role", { required: true })}>
+              <option value="">Select Role</option>
+              <option value="buyer">Buyer</option>
+              <option value="seller">Seller</option>
+            </select>
+            <input type="tel" placeholder="Phone Number" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("phone", { required: true })} />
+            <input type="email" placeholder="Email" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("email", { required: true })} />
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Password</label>
-                <input
-                  type={showPass ? "text" : "password"}
-                  className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                  {...register("password", { required: "Required" })}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Confirm</label>
-                <input
-                  type={showConfirmPass ? "text" : "password"}
-                  className="w-full p-3.5 bg-gray-50 rounded-xl border border-gray-100 focus:outline-none focus:border-blue-500"
-                  {...register("confirmPassword", {
-                    validate: (v) => v === password || "No match",
-                  })}
-                />
-              </div>
+              <input type="password" placeholder="Password" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("password", { required: true })} />
+              <input type="password" placeholder="Confirm" className="w-full p-3.5 bg-gray-50 rounded-xl border" {...register("confirmPassword", { validate: (v) => v === password })} />
             </div>
-
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg shadow-xl mt-4">
-              Create My Account
-            </button>
+            <button className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-lg mt-4">Create My Account</button>
           </form>
+
+          <p className="text-center mt-8 text-gray-500 text-sm">
+            Already a member? <button onClick={() => navigate("/login")} className="text-blue-600 font-black">Log In</button>
+          </p>
         </div>
       </div>
     </div>
