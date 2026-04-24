@@ -5,21 +5,19 @@ const cors = require('cors');
 const path = require("path");
 
 // 1. SECURITY & AUTH HEADERS
-// Updated to ensure Google Auth popups and cross-origin requests are permitted
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none"); 
   next();
 });
 
-// 2. UPDATED CORS (The most important fix)
-// Added your Render URL so the backend can talk to itself if needed
+// 2. UPDATED CORS
 app.use(cors({
   origin: [
     "https://vehicle-vault-alpha.vercel.app", 
     "https://vehicle-vault-backend.onrender.com",
-    "http://localhost:5173",
-    "http://192.168.4.103:5173"
+    "http://localhost:5173"
+    // REMOVED old local IP to prevent connection confusion
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
@@ -29,11 +27,9 @@ app.use(cors({
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// DATABASE CONNECTION
 const DBConnection = require('./src/utils/DBConnection');
 DBConnection();
 
-// ROUTES
 const userRoutes = require('./src/routes/UserRoutes');
 const vehicleRoutes = require('./src/routes/VehicleRoutes');
 const inspectionReportRoutes = require('./src/routes/InspectionReportRoutes');
@@ -50,9 +46,7 @@ app.use("/inquiry", inquiryRoutes);
 app.use("/help", helpRoutes);
 app.use('/inspection', inspectionReportRoutes); 
 
-// START SERVER
 const PORT = process.env.PORT || 3000;
-// '0.0.0.0' allows the server to be reached outside of just 'localhost'
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

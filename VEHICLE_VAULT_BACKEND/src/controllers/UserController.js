@@ -175,7 +175,7 @@ const forgotPassword = async (req, res) => {
     user.resetpasswordExpire = Date.now() + 3600000;
     await user.save();
 
-    // UPDATED: Uses environment variable for live deployment
+    // DYNAMIC URL: Uses your Vercel link in production and localhost in dev
     const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetUrl = `${frontendURL}/reset-password/${token}`;
 
@@ -189,7 +189,7 @@ const forgotPassword = async (req, res) => {
         <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Reset Password</a>
         <p style="margin-top: 20px; color: #666;">If you didn't request this, you can safely ignore this email.</p>
       </div>
-    `,
+    `
     );
 
     res.status(200).json({ message: "Reset link sent" });
