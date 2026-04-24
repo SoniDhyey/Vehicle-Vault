@@ -18,7 +18,7 @@ const Help = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ Use relative path. axios.defaults.baseURL from App.js handles the domain.
+      // ✅ Using relative path works because of axios.defaults.baseURL in App.js
       await axios.post("/help", form);
       
       toast.success("Query sent successfully 🚀");
@@ -28,10 +28,10 @@ const Help = () => {
         message: "",
       });
     } catch (err) {
-      // Check if there is a specific message from backend
-      const errMsg = err.response?.data?.message || "Error sending query";
-      toast.error(errMsg);
-      console.error(err);
+      // Pulling specific error message from backend if available
+      const errorMessage = err.response?.data?.message || "Error sending query";
+      toast.error(errorMessage);
+      console.error("Help form error:", err);
     }
   };
 
@@ -41,12 +41,15 @@ const Help = () => {
         onSubmit={handleSubmit}
         className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md space-y-5"
       >
-        <h2 className="text-2xl font-bold text-amber-400 text-center select-none">
-          Help & Support 🛠
-        </h2>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-amber-400 select-none">
+            Help & Support 🛠
+          </h2>
+          <p className="text-gray-400 text-xs mt-1 uppercase tracking-tighter">Vehicle Vault Assistance</p>
+        </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Email</label>
           <input
             type="email"
             name="email"
@@ -59,7 +62,7 @@ const Help = () => {
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Message</label>
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Issue Description</label>
           <textarea
             name="message"
             placeholder="Describe your issue or question..."
@@ -72,7 +75,7 @@ const Help = () => {
 
         <button
           type="submit"
-          className="w-full bg-amber-500 py-3 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-900/20"
+          className="w-full bg-amber-500 py-3 rounded-lg font-black uppercase text-xs tracking-[2px] hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-900/20"
         >
           Send Query
         </button>
