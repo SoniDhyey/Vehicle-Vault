@@ -18,8 +18,9 @@ const Help = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Ensure your backend has an app.use("/help", helpRoutes) or similar
-      await axios.post("http://localhost:3000/help", form);
+      // ✅ Use relative path. axios.defaults.baseURL from App.js handles the domain.
+      await axios.post("/help", form);
+      
       toast.success("Query sent successfully 🚀");
 
       setForm({
@@ -27,7 +28,9 @@ const Help = () => {
         message: "",
       });
     } catch (err) {
-      toast.error("Error sending query");
+      // Check if there is a specific message from backend
+      const errMsg = err.response?.data?.message || "Error sending query";
+      toast.error(errMsg);
       console.error(err);
     }
   };
@@ -42,28 +45,34 @@ const Help = () => {
           Help & Support 🛠
         </h2>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Your Email"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full p-3 rounded bg-black/40 border border-gray-600 focus:border-amber-500 focus:outline-none focus:ring-0 focus:ring-offset-0 outline-none"
-          required
-        />
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="Your Email"
+            value={form.email}
+            onChange={handleChange}
+            className="w-full p-3 rounded bg-black/40 border border-gray-600 focus:border-amber-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
 
-        <textarea
-          name="message"
-          placeholder="Describe your issue or question..."
-          value={form.message}
-          onChange={handleChange}
-          className="w-full p-3 rounded bg-black/40 border border-gray-600 h-32 focus:border-amber-500 focus:outline-none focus:ring-0 focus:ring-offset-0 outline-none resize-none"
-          required
-        />
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Message</label>
+          <textarea
+            name="message"
+            placeholder="Describe your issue or question..."
+            value={form.message}
+            onChange={handleChange}
+            className="w-full p-3 rounded bg-black/40 border border-gray-600 h-32 focus:border-amber-500 focus:outline-none resize-none transition-colors"
+            required
+          />
+        </div>
 
         <button
           type="submit"
-          className="w-full bg-amber-500 py-3 rounded-lg font-semibold hover:bg-amber-600 transition duration-300"
+          className="w-full bg-amber-500 py-3 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-amber-600 transition-all active:scale-95 shadow-lg shadow-amber-900/20"
         >
           Send Query
         </button>
