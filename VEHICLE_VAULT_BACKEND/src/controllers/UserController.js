@@ -3,10 +3,10 @@ const bcrypt = require("bcrypt");
 const mailSend = require("../utils/MailUtil");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const mongoose = require("mongoose");
 const { OAuth2Client } = require("google-auth-library");
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const secret = process.env.JWT_SECRET || "secret"; // Use env variable for secret
+const secret = process.env.JWT_SECRET || "secret";
 
 const registerUser = async (req, res) => {
   try {
@@ -20,13 +20,9 @@ const registerUser = async (req, res) => {
       "Welcome to Vehicle Vault",
       `<h1>Welcome to Vehicle Vault 🚗</h1><p>Your account has been created successfully.</p>`,
     );
-    res
-      .status(201)
-      .json({ message: "user created successfully", data: savedUser });
+    res.status(201).json({ message: "user created successfully", data: savedUser });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "error while creating user", err: err.message });
+    res.status(500).json({ message: "error while creating user", err: err.message });
   }
 };
 
@@ -34,29 +30,29 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     const foundUser = await userSchema.findOne({ email });
-    if (!foundUser)
-      return res.status(404).json({ message: "No account found." });
-    const isPasswordMatched = await bcrypt.compare(
-      password,
-      foundUser.password,
-    );
+    if (!foundUser) return res.status(404).json({ message: "No account found." });
+
+    const isPasswordMatched = await bcrypt.compare(password, foundUser.password);
+    
     if (isPasswordMatched) {
-      const token = jwt.sign(foundUser.toObject(), secret, { expiresIn: "1d" });
-      res
-        .status(200)
-        .json({
-          message: "Login Success",
-          token,
-          role: foundUser.role,
-          data: foundUser,
-        });
+      // ✅ FIX: Only sign essential data
+      const token = jwt.sign(
+        { _id: foundUser._id, role: foundUser.role }, 
+        secret, 
+        { expiresIn: "1d" }
+      );
+
+      res.status(200).json({
+        message: "Login Success",
+        token,
+        role: foundUser.role,
+        data: foundUser,
+      });
     } else {
       res.status(401).json({ message: "Invalid Credentials" });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Server error during login", err: err.message });
+    res.status(500).json({ message: "Server error during login", err: err.message });
   }
 };
 
@@ -70,12 +66,14 @@ const googleLogin = async (req, res) => {
     const { email } = ticket.getPayload();
 
     let user = await userSchema.findOne({ email });
-    if (!user)
-      return res
-        .status(404)
-        .json({ message: "No account found. Please Sign Up first." });
+    if (!user) return res.status(404).json({ message: "No account found. Please Sign Up first." });
 
-    const jwtToken = jwt.sign(user.toObject(), secret, { expiresIn: "1d" });
+    // ✅ FIX: Only sign essential data
+    const jwtToken = jwt.sign(
+      { _id: user._id, role: user.role }, 
+      secret, 
+      { expiresIn: "1d" }
+    );
     res.status(200).json({ token: jwtToken, role: user.role, data: user });
   } catch (err) {
     res.status(500).json({ message: "Google Login failed", err: err.message });
@@ -92,10 +90,7 @@ const googleSignup = async (req, res) => {
     const { email, given_name, family_name } = ticket.getPayload();
 
     let existingUser = await userSchema.findOne({ email });
-    if (existingUser)
-      return res
-        .status(400)
-        .json({ message: "User already exists. Please Login." });
+    if (existingUser) return res.status(400).json({ message: "User already exists. Please Login." });
 
     const user = await userSchema.create({
       firstName: given_name,
@@ -107,15 +102,18 @@ const googleSignup = async (req, res) => {
       status: "active",
     });
 
-    const jwtToken = jwt.sign(user.toObject(), secret, { expiresIn: "1d" });
-    res
-      .status(201)
-      .json({
-        message: "Account created successfully",
-        token: jwtToken,
-        role: user.role,
-        data: user,
-      });
+    // ✅ FIX: Only sign essential data
+    const jwtToken = jwt.sign(
+      { _id: user._id, role: user.role }, 
+      secret, 
+      { expiresIn: "1d" }
+    );
+    res.status(201).json({
+      message: "Account created successfully",
+      token: jwtToken,
+      role: user.role,
+      data: user,
+    });
   } catch (err) {
     res.status(500).json({ message: "Google Signup failed", err: err.message });
   }
@@ -142,8 +140,7 @@ const getAllUsers = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const updateData = { ...req.body };
-    if (updateData.password)
-      updateData.password = await bcrypt.hash(updateData.password, 10);
+    if (updateData.password) updateData.password = await bcrypt.hash(updateData.password, 10);
     const updatedUser = await userSchema.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -175,21 +172,13 @@ const forgotPassword = async (req, res) => {
     user.resetpasswordExpire = Date.now() + 3600000;
     await user.save();
 
-    // DYNAMIC URL: Uses your Vercel link in production and localhost in dev
     const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetUrl = `${frontendURL}/reset-password/${token}`;
 
     await mailSend(
       email,
       "Password Reset Link",
-      `
-      <div style="font-family: sans-serif; padding: 20px;">
-        <h2>Password Reset</h2>
-        <p>You requested a password reset for your Vehicle Vault account.</p>
-        <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Reset Password</a>
-        <p style="margin-top: 20px; color: #666;">If you didn't request this, you can safely ignore this email.</p>
-      </div>
-    `
+      `<h2>Password Reset</h2><p>Click <a href="${resetUrl}">here</a> to reset.</p>`
     );
 
     res.status(200).json({ message: "Reset link sent" });
