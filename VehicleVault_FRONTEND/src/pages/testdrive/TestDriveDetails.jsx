@@ -50,7 +50,6 @@ const TestDriveDetails = () => {
               <div key={req._id} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row justify-between gap-6 transition-all hover:border-blue-200">
                 
                 <div className="flex-1 space-y-4">
-                  {/* Vehicle & Buyer Name */}
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
                       {req.vehicle_id?.make} <span className="text-blue-600">{req.vehicle_id?.model}</span>
@@ -60,7 +59,6 @@ const TestDriveDetails = () => {
                     </p>
                   </div>
 
-                  {/* Request Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
                     <div className="flex items-center gap-3 text-slate-600">
                       <FaCalendarCheck className="text-blue-500" />
@@ -87,22 +85,20 @@ const TestDriveDetails = () => {
                     </div>
                   </div>
 
-                  {/* Date the inquiry was actually sent */}
                   <div className="flex items-center gap-2 pt-2">
                     <FaPaperPlane className="text-slate-300 text-xs" />
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                      Request Sent: {new Date(req.createdAt).toLocaleString()}
+                      Request Sent: {req.createdAt ? new Date(req.createdAt).toLocaleString() : "Recently"}
                     </p>
                   </div>
                 </div>
 
-                {/* Actions Section */}
                 <div className="flex flex-col justify-center items-center md:items-end gap-3 min-w-[150px]">
                   {req.status === "Pending" ? (
                     <div className="flex flex-col w-full gap-2">
                       <button 
                         onClick={() => handleStatusUpdate(req._id, "Approved")} 
-                        className="w-full bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                        className="w-full bg-emerald-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
                       >
                         Approve
                       </button>

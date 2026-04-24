@@ -18,10 +18,10 @@ const bookTestDrive = async (req, res) => {
 // GET TEST DRIVES (For Buyer Side)
 const getTestDrives = async (req, res) => {
   try {
-    // Ensure the model names match your actual Mongoose registration names
     const testDrives = await TestDriveModel.find({ buyer_id: req.user._id })
       .populate("vehicle_id")
-      .populate("buyer_id", "firstName lastName email"); 
+      .populate("buyer_id", "firstName lastName email")
+      .sort({ createdAt: -1 }); 
     res.status(200).json({ message: "Fetched successfully", data: testDrives });
   } catch (err) {
     res.status(500).json({ message: "Error fetching bookings", error: err.message });
@@ -31,14 +31,13 @@ const getTestDrives = async (req, res) => {
 // GET REQUESTS FOR SELLER
 const getSellerRequests = async (req, res) => {
   try {
-    // 1. Find all vehicles owned by this seller
     const myVehicles = await VehicleModel.find({ seller_id: req.user._id }).select("_id");
     const vehicleIds = myVehicles.map(v => v._id);
 
-    // 2. Find test drive requests for those vehicles
     const requests = await TestDriveModel.find({ vehicle_id: { $in: vehicleIds } })
       .populate("vehicle_id")
-      .populate("buyer_id", "firstName lastName email");
+      .populate("buyer_id", "firstName lastName email")
+      .sort({ createdAt: -1 }); // Added sorting
 
     res.status(200).json({ data: requests });
   } catch (err) {
