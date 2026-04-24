@@ -11,13 +11,15 @@ import {
 const MyOffer = () => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchMyOffers = async () => {
     try {
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user")); 
       
-      const res = await axios.get("http://localhost:3000/offer/getoffers", {
+      // Use dynamic API_URL
+      const res = await axios.get(`${API_URL}/offer/getoffers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -36,9 +38,8 @@ const MyOffer = () => {
 
   useEffect(() => {
     fetchMyOffers();
-  }, []);
+  }, [API_URL]);
 
-  // ✅ Status Badge: Removed animation rolling effect
   const getStatusBadge = (status) => {
     const style = {
       Accepted: "bg-emerald-500/10 text-emerald-600 border-emerald-200/50",
@@ -71,20 +72,17 @@ const MyOffer = () => {
 
         <div className="grid gap-6">
           {offers.map((offer) => {
-            // ✅ IMAGE LOGIC: Check if it's a Cloudinary URL or a local path
             let finalImageUrl = "";
             const vehicle = offer.vehicle_id;
 
             if (vehicle?.images && vehicle.images.length > 0) {
               const imagePath = vehicle.images[0];
-
               if (imagePath.startsWith("http")) {
-                // It's a Cloudinary URL, use it directly
                 finalImageUrl = imagePath;
               } else {
-                // It's a local path, add the server prefix
                 const cleanPath = imagePath.replace(/\\/g, '/');
-                finalImageUrl = `http://localhost:3000/${cleanPath}`;
+                // Use dynamic API_URL for local images
+                finalImageUrl = `${API_URL}/${cleanPath}`;
               }
             }
 

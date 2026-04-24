@@ -1,103 +1,138 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { FaPaperPlane, FaMoneyBillWave } from "react-icons/fa";
+import { FaCheck, FaTimes, FaHistory, FaCalendarAlt } from "react-icons/fa";
 
-const SendOffer = ({ vehicleId, vehiclePrice, onClose }) => {
-  const [offeredPrice, setOfferedPrice] = useState("");
-  const [loading, setLoading] = useState(false);
+const SellerOffer = () => {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  const handleSendOffer = async (e) => {
-    e.preventDefault();
-    
-    // 1. Validate Input
-    if (!offeredPrice || Number(offeredPrice) <= 0) {
-      return toast.error("Please enter a valid price");
-    }
-
-    setLoading(true);
+  const fetchOffers = async () => {
     try {
-      // 2. Retrieve Auth Data
+      setLoading(true);
       const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-
-      // Check if user is actually logged in
-      if (!token || !userStr) {
-        toast.error("Please login to send an offer");
+      if (!token) {
+        toast.error("Please login to access offers.");
         return;
       }
 
-      const user = JSON.parse(userStr);
+      // Use dynamic API_URL
+      const res = await axios.get(`${API_URL}/offer/getoffers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      // 3. Prepare Data (Ensuring offered_price is a Number)
-      const offerData = {
-        buyer_id: user._id,
-        vehicle_id: vehicleId,
-        offered_price: Number(offeredPrice), 
-      };
-
-      // 4. API Call
-      const response = await axios.post(
-        "http://localhost:3000/offer/makeoffer", 
-        offerData, 
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-        }
-      );
-
-      // 5. Success Handling
-      if (response.data) {
-        toast.success("Offer sent to seller!");
-        setTimeout(() => {
-           if (onClose) onClose();
-        }, 1500);
-      }
-      
+      setOffers(res.data.data || []);
     } catch (err) {
-      // 6. Detailed Error Logging
-      console.error("Offer Error:", err.response?.data);
-      const errorMessage = err.response?.data?.message || "Server connection failed";
-      toast.error(errorMessage);
+      console.error("Offer Fetch Error:", err);
+      toast.error("Failed to load incoming offers");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchOffers();
+  }, [API_URL]);
+
+  const handleAction = async (id, status) => {
+    try {
+      const token = localStorage.getItem("token");
+      // Use dynamic API_URL
+      await axios.put(`${API_URL}/offer/updateoffer/${id}`, 
+        { status }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Offer marked as ${status}`);
+      fetchOffers(); 
+    } catch (err) {
+      toast.error("Failed to update offer status");
+    }
+  };
+
+  if (loading) return <div className="p-20 text-center text-slate-500">Syncing with the Vault...</div>;
+
   return (
-    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl">
-      <h3 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2 uppercase tracking-tight">
-        <FaMoneyBillWave className="text-emerald-500" /> Make an Offer
-      </h3>
-      <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-6">
-        Listed Price: <span className="text-slate-900">₹{vehiclePrice?.toLocaleString()}</span>
-      </p>
+    <div className="min-h-screen bg-slate-50 p-6 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-black mb-10 text-slate-900 leading-tight">Incoming Offers</h1>
 
-      <form onSubmit={handleSendOffer} className="space-y-5">
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Your Offer (₹)</label>
-          <input
-            type="number"
-            className="p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-slate-900"
-            placeholder="e.g. 1500000"
-            value={offeredPrice}
-            onChange={(e) => setOfferedPrice(e.target.value)}
-            required
-          />
-        </div>
+        {offers.length === 0 ? (
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center shadow-sm">
+            <FaHistory className="mx-auto text-slate-300 text-4xl mb-4" />
+            <p className="text-slate-400 font-bold">No active offers for your vehicles.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {offers.map((offer) => (
+              <div 
+                key={offer._id} 
+                className="bg-white border-l-4 border-l-blue-500 p-6 rounded-2xl shadow-md border-y border-r border-slate-100 flex flex-col md:flex-row md:items-center gap-6 relative"
+              >
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <FaCalendarAlt className="text-blue-500" />
+                  {offer.createdAt ? new Date(offer.createdAt).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                  }) : "N/A"}
+                </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-900/20 disabled:bg-slate-300 disabled:shadow-none"
-        >
-          <FaPaperPlane size={14} /> {loading ? "Processing..." : "Send Offer"}
-        </button>
-      </form>
+                <div className="flex-1 md:border-r md:border-slate-100 md:pr-6">
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+                    Vehicle
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-1">
+                    {offer.vehicle_id?.make || "Unknown"} {offer.vehicle_id?.model || "Model"}
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                    {offer.vehicle_id?.year || "Year"} • {offer.vehicle_id?.fuelType || "Fuel"}
+                  </p>
+                </div>
+
+                <div className="md:border-r md:border-slate-100 md:px-6 md:text-center flex-1">
+                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Buyer's Offer</p>
+                  <p className="text-3xl font-black text-emerald-600 tracking-tighter">
+                    ₹{offer.offered_price?.toLocaleString('en-IN')}
+                  </p>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">
+                     STATUS: <span className="text-blue-600 uppercase">{offer.status}</span>
+                   </p>
+                </div>
+                
+                <div className="flex-1 space-y-3">
+                  <div className="text-sm space-y-1">
+                    <p className="text-slate-600 font-medium">Buyer: <span className="font-bold text-slate-900">{offer.buyer_id?.firstName} {offer.buyer_id?.lastName}</span></p>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-xs text-slate-500">📧 {offer.buyer_id?.email || "N/A"}</p>
+                      <p className="text-xs text-slate-500">📞 {offer.buyer_id?.phone || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  {offer.status === "Pending" && (
+                    <div className="flex gap-2.5 pt-1">
+                      <button 
+                        onClick={() => handleAction(offer._id, "Accepted")}
+                        className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition flex items-center gap-2"
+                      >
+                        <FaCheck /> Accept
+                      </button>
+                      <button 
+                        onClick={() => handleAction(offer._id, "Rejected")}
+                        className="bg-white border border-red-200 text-red-500 px-5 py-2.5 rounded-xl font-bold hover:bg-red-50 transition flex items-center gap-2"
+                      >
+                        <FaTimes /> Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default SendOffer;
+export default SellerOffer;
