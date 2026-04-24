@@ -3,11 +3,18 @@ const mongoose = require("mongoose");
 const helpSchema = new mongoose.Schema({
   email: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    lowercase: true
   },
   message: {
     type: String,
     required: true
+  },
+  status: {
+    type: String,
+    enum: ["pending", "resolved"],
+    default: "pending"
   },
   createdAt: {
     type: Date,
@@ -15,5 +22,5 @@ const helpSchema = new mongoose.Schema({
   }
 });
 
-
-module.exports = mongoose.model("Help", helpSchema);
+// Use "helps" as the collection name to stay consistent with your controllers
+module.exports = mongoose.model("helps", helpSchema);
