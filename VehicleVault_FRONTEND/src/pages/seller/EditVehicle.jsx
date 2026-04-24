@@ -8,26 +8,38 @@ const EditVehicle = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  const [vehicle, setVehicle] = useState({ make: '', model: '', year: '', price: '', description: '' });
+  const [vehicle, setVehicle] = useState({ 
+    make: '', 
+    model: '', 
+    year: '', 
+    price: '', 
+    description: '',
+    fuelType: '',
+    transmission: '' 
+  });
+  
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
-  // ✅ Track if the cover is currently from 'existing' or 'new'
   const [coverSource, setCoverSource] = useState('existing');
+
+  // ✅ Use environment variable for the backend URL
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`/vehicle/getvehicle/${id}`);
+        const res = await axios.get(`${API_URL}/vehicle/getvehicle/${id}`);
         setVehicle(res.data.data);
         setExistingImages(res.data.data.images || []);
         setLoading(false);
       } catch (err) {
+        console.error("Fetch Error:", err);
         toast.error("Vehicle data not found.");
         navigate("/seller/dashboard");
       }
     };
     fetchData();
-  }, [id, navigate]);
+  }, [id, navigate, API_URL]);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -36,74 +48,77 @@ const EditVehicle = () => {
 
   const removeImage = (index, isExisting) => {
     if (isExisting) {
-      setExistingImages(existingImages.filter((_, i) => i !== index));
+      const updated = existingImages.filter((_, i) => i !== index);
+      setExistingImages(updated);
       if (index === 0) setCoverSource(newImages.length > 0 ? 'new' : 'existing');
     } else {
-      setNewImages(newImages.filter((_, i) => i !== index));
+      const updated = newImages.filter((_, i) => i !== index);
+      setNewImages(updated);
       if (index === 0 && coverSource === 'new') setCoverSource('existing');
     }
   };
 
-  // ✅ IMPROVED SET COVER LOGIC
   const setAsCover = (index, isExisting) => {
     if (isExisting) {
       const updated = [...existingImages];
       const [selected] = updated.splice(index, 1);
       setExistingImages([selected, ...updated]);
-      setCoverSource('existing'); // Focus back on existing
+      setCoverSource('existing');
     } else {
       const updatedNew = [...newImages];
       const [selectedFile] = updatedNew.splice(index, 1);
       setNewImages([selectedFile, ...updatedNew]);
-      setCoverSource('new'); // Focus on the new image list
+      setCoverSource('new');
     }
-    toast.info("Cover image updated in preview");
+    toast.info("Cover updated in preview");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    Object.keys(vehicle).forEach(key => formData.append(key, vehicle[key]));
-
-    // If a new image is the cover, it's already at index 0 of the "images" append
-    // If an existing image is the cover, it's at index 0 of cleanExisting
-    const cleanExisting = existingImages.filter(img => typeof img === 'string' && img.startsWith('http'));
     
-    // Logic: If coverSource is 'new', the backend should treat the first file in 'images' as primary
-    // We send an extra field so your backend knows which one to prioritize if needed
-    formData.append("coverSource", coverSource);
-    formData.append("existingImages", JSON.stringify(cleanExisting));
-
-    newImages.forEach((file) => {
-      formData.append("images", file);
+    // ✅ Add vehicle details (excluding the raw images array from state)
+    Object.keys(vehicle).forEach(key => {
+      if (key !== 'images') formData.append(key, vehicle[key]);
     });
 
+    const cleanExisting = existingImages.filter(img => typeof img === 'string' && img.startsWith('http'));
+    
+    // ✅ Logic: Order images so the Backend always sees the Cover at Index 0
+    if (coverSource === 'new') {
+      newImages.forEach((file) => formData.append("images", file));
+      formData.append("existingImages", JSON.stringify(cleanExisting));
+    } else {
+      formData.append("existingImages", JSON.stringify(cleanExisting));
+      newImages.forEach((file) => formData.append("images", file));
+    }
+
     try {
-      await axios.put(`/vehicle/updatevehicle/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+      const token = localStorage.getItem("token");
+      // ✅ Added token to fix 401 and ordered payload to fix 500
+      await axios.put(`${API_URL}/vehicle/updatevehicle/${id}`, formData, {
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}` 
+        }
       });
-      toast.success("Vehicle updated successfully");
+      toast.success("Vehicle Updated Successfully");
       navigate("/seller/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Upload failed");
+      console.error("Update Error:", err);
+      toast.error(err.response?.data?.message || "Failed to update vehicle");
     }
   };
 
-  // ✅ UI PREVIEW FIX: correctly shows what is selected
   const getPrimaryImage = () => {
     if (coverSource === 'new' && newImages.length > 0) {
       return URL.createObjectURL(newImages[0]);
     }
-    if (existingImages.length > 0) {
-      return existingImages[0];
-    }
-    if (newImages.length > 0) {
-        return URL.createObjectURL(newImages[0]);
-    }
+    if (existingImages.length > 0) return existingImages[0];
     return null;
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="p-20 text-center font-black uppercase tracking-widest text-slate-400">Loading Vault...</div>;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20">
@@ -126,19 +141,17 @@ const EditVehicle = () => {
             </div>
 
             <div className="space-y-6">
-              {/* BIG PRIMARY PREVIEW */}
               <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border-[6px] border-white bg-white">
                 {getPrimaryImage() ? (
-                  <img src={getPrimaryImage()} className="w-full h-full object-cover transition-all duration-500" alt="Primary" />
+                  <img src={getPrimaryImage()} className="w-full h-full object-cover" alt="Primary" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold uppercase tracking-widest">No Images</div>
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">No Images</div>
                 )}
                 <div className="absolute top-6 left-6 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
                   Primary Cover
                 </div>
               </div>
 
-              {/* THUMBNAILS */}
               <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                 {existingImages.map((url, i) => (
                   <GalleryItem 
@@ -187,6 +200,7 @@ const EditVehicle = () => {
               </button>
             </div>
           </div>
+
         </div>
       </main>
     </div>
@@ -194,17 +208,12 @@ const EditVehicle = () => {
 };
 
 const GalleryItem = ({ url, isNew, onRemove, onSetCover, isCover }) => (
-  <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 ${isCover ? 'border-blue-500 ring-4 ring-blue-100 scale-95' : 'border-white shadow-sm'}`}>
+  <div className={`group relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${isCover ? 'border-blue-500 ring-4 ring-blue-50 scale-95' : 'border-white shadow-sm'}`}>
     <img src={url} className="w-full h-full object-cover" alt="Thumb" />
-    
-    {/* Overlay appears on hover */}
     <div className={`absolute inset-0 bg-slate-900/60 transition-opacity flex flex-col items-center justify-center gap-2 p-3 ${isCover ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
-      <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter hover:bg-blue-50">Set Cover</button>
-      <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter hover:bg-red-600">Remove</button>
+      <button type="button" onClick={onSetCover} className="w-full py-2 bg-white text-slate-900 text-[9px] font-black rounded-lg uppercase tracking-tighter">Set Cover</button>
+      <button type="button" onClick={onRemove} className="w-full py-2 bg-red-500 text-white text-[9px] font-black rounded-lg uppercase tracking-tighter">Remove</button>
     </div>
-
-    {/* Indicator Tags */}
-    {isCover && <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl pointer-events-none"></div>}
     {isNew && <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded font-black uppercase shadow-md">New</div>}
   </div>
 );
