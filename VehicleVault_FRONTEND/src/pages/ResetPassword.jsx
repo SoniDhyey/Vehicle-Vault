@@ -10,12 +10,12 @@ export default function ResetPassword() {
   const { register, handleSubmit, watch } = useForm();
   const password = watch("password");
 
-  // This ensures we use the correct backend regardless of where the site is hosted
+  // This variable is critical to fix the "Connection Refused" error
   const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const onSubmit = async (data) => {
     try {
-      // We must use backticks (``) and ${BACKEND_URL} here
+      // Using an absolute URL prevents the browser from guessing the wrong IP
       const res = await axios.post(`${BACKEND_URL}/user/reset-password/${token}`, { 
         password: data.password 
       });
@@ -23,7 +23,7 @@ export default function ResetPassword() {
       toast.success(res.data.message);
       navigate('/login');
     } catch (err) {
-      // If the backend is down or the URL is wrong, this error will trigger
+      // This will now catch and show if the server is actually reachable
       toast.error(err.response?.data?.message || "Connection to server failed");
     }
   };
@@ -35,21 +35,29 @@ export default function ResetPassword() {
         <p className="text-gray-500 mb-8 font-medium">Your link is verified. Enter a new password below.</p>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <input 
-            type="password" 
-            placeholder="New Password" 
-            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all shadow-sm"
-            {...register("password", { required: true })}
-          />
-          <input 
-            type="password" 
-            placeholder="Confirm Password" 
-            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all shadow-sm"
-            {...register("confirmPassword", { 
-              validate: value => value === password || "Passwords do not match" 
-            })}
-          />
-          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg transition-all shadow-xl mt-2 active:scale-95">
+          <div className="space-y-1 text-left">
+            <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">New Password</label>
+            <input 
+              type="password" 
+              placeholder="••••••••" 
+              className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+              {...register("password", { required: true })}
+            />
+          </div>
+
+          <div className="space-y-1 text-left">
+            <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Confirm Password</label>
+            <input 
+              type="password" 
+              placeholder="••••••••" 
+              className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+              {...register("confirmPassword", { 
+                validate: value => value === password || "Passwords do not match" 
+              })}
+            />
+          </div>
+
+          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg transition-all shadow-xl mt-4 active:scale-95">
             Update Password
           </button>
         </form>
