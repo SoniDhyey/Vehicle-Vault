@@ -4,10 +4,17 @@ const app = express();
 const cors = require('cors');
 const path = require("path");
 
-// 1. UPDATED CORS: This allows your Vercel frontend to talk to this backend
-// UPDATED CORS: Allows both your live site and your local testing
+// 1. SECURITY HEADERS: Fixes "Google Auth Failed" and COOP errors
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none"); // Set to unsafe-none to allow Google scripts
+  next();
+});
+
+// 2. UPDATED CORS: Explicitly allows your Vercel URL and local development
 app.use(cors({
   origin: ["https://vehicle-vault-alpha.vercel.app", "http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
@@ -27,7 +34,7 @@ const testDriveRoutes = require('./src/routes/TestDriveRoutes');
 const helpRoutes = require("./src/routes/HelpRoutes");
 const inquiryRoutes = require("./src/routes/InquiryRoutes"); 
 
-// These paths match your frontend calls now
+// Route Mounting
 app.use("/user", userRoutes);
 app.use("/vehicle", vehicleRoutes);
 app.use('/offer', offerRoutes); 
@@ -36,6 +43,7 @@ app.use("/inquiry", inquiryRoutes);
 app.use("/help", helpRoutes);
 app.use('/inspection', inspectionReportRoutes); 
 
+// 3. START SERVER: '0.0.0.0' allows access from your phone via your Laptop's IP
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
