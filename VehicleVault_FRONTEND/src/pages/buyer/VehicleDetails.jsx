@@ -27,19 +27,29 @@ const VehicleDetails = () => {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [activeImage, setActiveImage] = useState("");
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // Helper function to format image URLs correctly
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "https://via.placeholder.com/800x500?text=No+Image+Available";
+    if (imagePath.startsWith("http")) return imagePath;
+    const cleanPath = imagePath.replace(/\\/g, '/');
+    return `${API_URL}/${cleanPath}`;
+  };
+
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         const [vRes, rRes] = await Promise.allSettled([
-          axios.get(`http://localhost:3000/vehicle/getvehicle/${id}`),
-          axios.get(`http://localhost:3000/inspection/getreport/${id}`),
+          axios.get(`${API_URL}/vehicle/getvehicle/${id}`),
+          axios.get(`${API_URL}/inspection/getreport/${id}`),
         ]);
 
         if (vRes.status === "fulfilled") {
           const data = vRes.value.data.data;
           setVehicle(data);
           if (data.images && data.images.length > 0) {
-            setActiveImage(data.images[0]);
+            setActiveImage(getImageUrl(data.images[0]));
           }
         }
         if (rRes.status === "fulfilled") setReport(rRes.value.data.data);
@@ -50,18 +60,36 @@ const VehicleDetails = () => {
       }
     };
     fetchAllData();
-  }, [id]);
+  }, [id, API_URL]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-black text-slate-400 uppercase tracking-widest">Loading Vault...</div>;
-  if (!vehicle) return <div className="min-h-screen flex items-center justify-center text-slate-900 bg-slate-50">Vehicle Asset Not Found</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 font-black text-slate-400 uppercase tracking-widest">
+      Loading Vault...
+    </div>
+  );
+
+  if (!vehicle) return (
+    <div className="min-h-screen flex items-center justify-center text-slate-900 bg-slate-50 font-bold">
+      Vehicle Asset Not Found
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-20">
       {showOfferModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="relative w-full max-md">
-            <button onClick={() => setShowOfferModal(false)} className="absolute -top-12 right-0 text-white font-bold hover:text-blue-400">CLOSE [X]</button>
-            <SendOffer vehicleId={vehicle._id} vehiclePrice={vehicle.price} onClose={() => setShowOfferModal(false)} />
+          <div className="relative w-full max-w-md">
+            <button 
+              onClick={() => setShowOfferModal(false)} 
+              className="absolute -top-12 right-0 text-white font-bold hover:text-blue-400 transition-colors"
+            >
+              CLOSE [X]
+            </button>
+            <SendOffer 
+              vehicleId={vehicle._id} 
+              vehiclePrice={vehicle.price} 
+              onClose={() => setShowOfferModal(false)} 
+            />
           </div>
         </div>
       )}
@@ -70,17 +98,28 @@ const VehicleDetails = () => {
       <div className="bg-white border-b border-slate-200 py-10 px-6 mb-10 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-4">
           <div>
-            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tight select none cursor-default">
+            <h1 className="text-5xl font-black text-slate-950 uppercase tracking-tight select-none">
               {vehicle.make} <span className="text-blue-600">{vehicle.model}</span>
             </h1>
             <div className="mt-4 flex gap-3">
-              <span className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">Available Now</span>
-              {report && <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">Inspection Verified</span>}
+              <span className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                Available Now
+              </span>
+              {report && (
+                <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                  Inspection Verified
+                </span>
+              )}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-4xl font-black text-slate-900 leading-none">₹{vehicle.price?.toLocaleString()}</p>
-            <button onClick={() => setShowOfferModal(true)} className="mt-4 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg">
+          <div className="text-right w-full md:w-auto">
+            <p className="text-4xl font-black text-slate-900 leading-none">
+              ₹{vehicle.price?.toLocaleString('en-IN')}
+            </p>
+            <button 
+              onClick={() => setShowOfferModal(true)} 
+              className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg"
+            >
               <FaHandHoldingUsd size={18} /> Make Offer
             </button>
           </div>
@@ -93,34 +132,38 @@ const VehicleDetails = () => {
           <div className="space-y-6">
             <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border-[12px] border-white">
               <img 
-                src={activeImage || "https://via.placeholder.com/800x500"} 
-                className="w-full h-[450px] object-cover transition-all duration-500" 
-                alt={vehicle.model} 
+                src={activeImage} 
+                className="w-full h-[300px] md:h-[450px] object-cover transition-all duration-500" 
+                alt={`${vehicle.make} ${vehicle.model}`} 
+                onError={(e) => { e.target.src = "https://via.placeholder.com/800x500?text=Image+Not+Found" }}
               />
             </div>
 
             {vehicle.images && vehicle.images.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-hide">
-                {vehicle.images.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveImage(img)}
-                    className={`relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-4 transition-all ${
-                      activeImage === img 
-                        ? "border-blue-600 scale-105 shadow-lg" 
-                        : "border-white shadow-sm hover:border-slate-200"
-                    }`}
-                  >
-                    <img src={img} className="w-full h-full object-cover" alt={`View ${index + 1}`} />
-                  </button>
-                ))}
+                {vehicle.images.map((img, index) => {
+                  const thumbUrl = getImageUrl(img);
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setActiveImage(thumbUrl)}
+                      className={`relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-4 transition-all ${
+                        activeImage === thumbUrl 
+                          ? "border-blue-600 scale-105 shadow-lg" 
+                          : "border-white shadow-sm hover:border-slate-200"
+                      }`}
+                    >
+                      <img src={thumbUrl} className="w-full h-full object-cover" alt={`View ${index + 1}`} />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
           <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Certified Specifications</h3>
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <SpecItem icon={<FaCalendarAlt />} label="Year" value={vehicle.year} />
               <SpecItem icon={<FaGasPump />} label="Fuel" value={vehicle.fuel_type} />
               <SpecItem icon={<FaCogs />} label="Gearbox" value={vehicle.transmission} />
@@ -141,18 +184,21 @@ const VehicleDetails = () => {
                 <ReportLine icon={<FaShieldAlt />} label="Body" value={report.body_condition} />
                 <ReportLine icon={<FaExclamationTriangle />} label="Incidents" value={report.accident_history} />
               </div>
-            ) : <p className="text-center text-slate-400 font-bold py-10">Pending Inspection</p>}
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-slate-400 font-bold">Pending Official Inspection</p>
+              </div>
+            )}
           </div>
 
           {/* ASSET OWNERSHIP */}
           <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white shadow-2xl">
             <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-8">Asset Ownership</h3>
             <div className="flex items-center gap-6 mb-10">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center font-black text-2xl uppercase">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center font-black text-2xl uppercase shadow-inner">
                 {vehicle.seller_id?.firstName?.charAt(0) || "S"}
               </div>
               <div>
-                {/* ✅ UPDATED: Now shows full name */}
                 <p className="font-black text-xl">
                   {vehicle.seller_id?.firstName} {vehicle.seller_id?.lastName}
                 </p>
@@ -162,24 +208,33 @@ const VehicleDetails = () => {
 
             <div className="flex flex-col gap-4">
               {showContact ? (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
                     <FaPhone className="text-blue-400" size={14} />
-                    {/* ✅ UPDATED: Now shows actual phone number from backend */}
                     <p className="font-bold text-sm tracking-wider">
-                      {vehicle.seller_id?.phone || "N/A"}
+                      {vehicle.seller_id?.phone || "Phone Not Provided"}
                     </p>
                   </div>
                   <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
                     <FaEnvelope className="text-blue-400" size={14} />
                     <p className="font-bold text-sm break-all">
-                      {vehicle.seller_id?.email || "N/A"}
+                      {vehicle.seller_id?.email || "Email Not Provided"}
                     </p>
                   </div>
-                  <button onClick={() => setShowContact(false)} className="w-full text-[10px] text-slate-500 uppercase font-black tracking-widest mt-2 hover:text-slate-300">Hide Details</button>
+                  <button 
+                    onClick={() => setShowContact(false)} 
+                    className="w-full text-[10px] text-slate-500 uppercase font-black tracking-widest mt-2 hover:text-slate-300 transition-colors"
+                  >
+                    Hide Details
+                  </button>
                 </div>
               ) : (
-                <button onClick={() => setShowContact(true)} className="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all">Connect Seller</button>
+                <button 
+                  onClick={() => setShowContact(true)} 
+                  className="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95"
+                >
+                  Connect Seller
+                </button>
               )}
 
               <button 
@@ -203,9 +258,8 @@ const VehicleDetails = () => {
   );
 };
 
-// ... SpecItem and ReportLine components remain exactly the same
 const SpecItem = ({ icon, label, value }) => (
-  <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border border-slate-100">
+  <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border border-slate-100 transition-colors hover:bg-white">
     <div className="text-blue-600 mb-3 text-xl">{icon}</div>
     <span className="text-[9px] font-black text-slate-400 uppercase mb-1">{label}</span>
     <span className="text-sm font-black text-slate-900 uppercase">{value || "N/A"}</span>
@@ -217,7 +271,7 @@ const ReportLine = ({ icon, label, value }) => (
     <div className="text-blue-500/30 mt-1">{icon}</div>
     <div className="flex-1">
       <span className="text-[10px] font-black text-slate-400 uppercase block">{label}</span>
-      <p className="text-sm font-bold text-slate-800">{value || "Verified"}</p>
+      <p className="text-sm font-bold text-slate-800">{value || "Verified Condition"}</p>
     </div>
   </div>
 );
