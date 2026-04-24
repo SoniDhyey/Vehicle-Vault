@@ -4,20 +4,21 @@ const app = express();
 const cors = require('cors');
 const path = require("path");
 
-// 1. SECURITY HEADERS: Fixes "Google Auth Failed" and COOP errors
+// 1. SECURITY HEADERS: Must be BEFORE CORS and Routes
 app.use((req, res, next) => {
+  // Fixes the popup blocking and cross-origin communication
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none"); // Set to unsafe-none to allow Google scripts
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none"); 
+  res.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
   next();
 });
 
-// 2. UPDATED CORS: Explicitly allows your Vercel URL and local development
-// 2. UPDATED CORS: Add your specific IP address here
+// 2. UPDATED CORS: Added credentials and explicit origins
 app.use(cors({
   origin: [
     "https://vehicle-vault-alpha.vercel.app", 
     "http://localhost:5173",
-    "http://192.168.4.103:5173" // <--- Add your IP here so your phone can talk to the backend
+    "http://192.168.4.103:5173" 
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
@@ -48,7 +49,6 @@ app.use("/inquiry", inquiryRoutes);
 app.use("/help", helpRoutes);
 app.use('/inspection', inspectionReportRoutes); 
 
-// 3. START SERVER: '0.0.0.0' allows access from your phone via your Laptop's IP
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);

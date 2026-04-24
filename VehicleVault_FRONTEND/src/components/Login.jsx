@@ -1,30 +1,23 @@
-import axios from "axios";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
+  const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-  // Define your Render URL here for easy maintenance
-   const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const handleAuthSuccess = (res) => {
     localStorage.setItem("token", res.data.token);
     const role = res.data.role?.toLowerCase() || res.data.data?.role?.toLowerCase();
 
     if (res.data.data) {
-      const userData = { ...res.data.data, role: role };
-      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("user", JSON.stringify({ ...res.data.data, role }));
     }
 
     if (role === "admin") navigate("/admin/dashboard");
@@ -36,7 +29,6 @@ export default function Login() {
 
   const submitHandler = async (formData) => {
     try {
-      // UPDATED: Added full Render URL
       const res = await axios.post(`${BACKEND_URL}/user/login`, formData);
       if (res.status === 200) {
         toast.success("Login successful");
@@ -47,28 +39,22 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        const userInfo = await axios.get(
-          "https://www.googleapis.com/oauth2/v3/userinfo",
-          { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
-        );
+  // Improved Google Handler: Sends JWT to backend instead of fetching userinfo on frontend
+  const handleGoogleResponse = async (credentialResponse) => {
+    try {
+      const res = await axios.post(`${BACKEND_URL}/user/google-login`, {
+        token: credentialResponse.credential, // Send the JWT token
+      });
 
-        // UPDATED: Added full Render URL
-        const res = await axios.post(`${BACKEND_URL}/user/google-login`, {
-          email: userInfo.data.email,
-        });
-
-        if (res.status === 200) {
-          toast.success("Google Login Successful");
-          handleAuthSuccess(res);
-        }
-      } catch (err) {
-        toast.error(err.response?.data?.message || "Google Auth Failed");
+      if (res.status === 200) {
+        toast.success("Google Login Successful");
+        handleAuthSuccess(res);
       }
-    },
-  });
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      toast.error(err.response?.data?.message || "Google Auth Failed");
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-[#FBFCFE] font-sans select-none">
@@ -81,29 +67,25 @@ export default function Login() {
         <div className="absolute inset-0 bg-blue-600/10"></div>
         <div className="absolute bottom-16 left-16 text-white z-10">
           <h1 className="text-5xl font-black tracking-tighter">Vehicle Vault</h1>
-          <p className="text-blue-100 mt-3 text-lg font-medium opacity-90">
-            The standard for automotive trust and transparency.
-          </p>
+          <p className="text-blue-100 mt-3 text-lg font-medium opacity-90">The standard for automotive trust.</p>
         </div>
       </div>
 
       <div className="flex items-center justify-center w-full md:w-1/2 px-10 bg-white">
         <div className="w-full max-w-md">
-          <h2 className="text-4xl font-black text-gray-900 tracking-tight mb-8 pt-4">
-            Welcome Back
-          </h2>
+          <h2 className="text-4xl font-black text-gray-900 mb-8">Welcome Back</h2>
 
-          <button
-            type="button"
-            onClick={() => handleGoogleLogin()}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 p-3.5 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm mb-6 cursor-pointer"
-          >
-            <img 
-              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-              alt="Google" className="w-5 h-5"
+          {/* Simplified Google Login Button to prevent CORS/Preflight errors */}
+          <div className="w-full flex justify-center mb-6">
+            <GoogleLogin
+              onSuccess={handleGoogleResponse}
+              onError={() => toast.error("Google Login Failed")}
+              useOneTap
+              theme="outline"
+              size="large"
+              width="380"
             />
-            Continue with Google
-          </button>
+          </div>
 
           <div className="relative flex items-center mb-6">
             <div className="flex-grow border-t border-gray-100"></div>
@@ -117,7 +99,7 @@ export default function Login() {
               <input
                 type="email"
                 placeholder="name@company.com"
-                className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 transition-all"
                 {...register("email", { required: "Email is required" })}
               />
             </div>
@@ -128,37 +110,23 @@ export default function Login() {
                 <input
                   type={showPass ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:outline-none focus:border-blue-500 transition-all"
                   {...register("password", { required: "Password is required" })}
                 />
-                <button 
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-4 text-gray-400 hover:text-blue-600"
-                >
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-4 text-gray-400">
                   {showPass ? "🙈" : "👁️"}
                 </button>
               </div>
             </div>
 
-            <div className="flex justify-end pt-1">
-              <button 
-                type="button" 
-                onClick={() => navigate("/forgot-password")}
-                className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
-              >
-                Forgot Password?
-              </button>
-            </div>
-
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg transition-all transform hover:scale-[1.02] shadow-xl cursor-pointer">
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-2xl font-black text-lg shadow-xl transition-all active:scale-95">
               Login 
             </button>
           </form>
 
-          <p className="text-center mt-12 text-gray-400 font-medium text-sm">
+          <p className="text-center mt-12 text-gray-400 text-sm">
             Don't have an account?{" "}
-            <button onClick={() => navigate("/signup")} className="text-blue-600 font-black hover:underline cursor-pointer">Create Account</button>
+            <button onClick={() => navigate("/signup")} className="text-blue-600 font-black hover:underline">Create Account</button>
           </p>
         </div>
       </div>
